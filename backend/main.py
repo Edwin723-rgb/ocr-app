@@ -14,19 +14,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance, ImageStat
-import pytesseract
-from pytesseract import Output
-import fitz  # PyMuPDF
-from fpdf import FPDF
-import uvicorn
 from dotenv import load_dotenv
-from markitdown import MarkItDown
-import google.generativeai as genai
-import pdfplumber
-from docx import Document
-from docx.shared import Pt
+
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+
+try:
+    import pytesseract
+    from pytesseract import Output
+except ImportError:
+    pytesseract = None
+    Output = None
+
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 load_dotenv()
+
+
+def is_cloud_runtime() -> bool:
+    return bool(os.getenv("VERCEL"))
+
+
+def has_tesseract() -> bool:
+    return pytesseract is not None and not is_cloud_runtime()
 
 # ── Config ────────────────────────────────────────────────────────────────────
 API_KEY              = os.getenv("OCR_API_KEY", "sci-ocr-2024")
@@ -43,7 +58,7 @@ def _resolve_data_dir(name: str) -> Path:
 
 UPLOAD_DIR           = Path(os.getenv("OCR_UPLOAD_DIR", str(_resolve_data_dir("uploads"))))
 OUTPUT_DIR           = Path(os.getenv("OCR_OUTPUT_DIR", str(_resolve_data_dir("outputs"))))
-MAX_UPLOAD_MB        = 300
+MAX_UPLOAD_MB        = int(os.getenv("MAX_UPLOAD_MB", "4" if os.getenv("VERCEL") else "300"))
 MAX_UPLOAD_BYTES     = MAX_UPLOAD_MB * 1024 * 1024
 MARKITDOWN_MIN_CHARS = 100
 SOFT_PAGE_WARNING    = 30
@@ -89,10 +104,10 @@ _default_tesseract = (
     else r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 )
 TESSERACT_CMD = os.getenv("TESSERACT_CMD", _default_tesseract or "tesseract")
-if TESSERACT_CMD:
+if pytesseract and TESSERACT_CMD:
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
-if GEMINI_API_KEY:
+if GEMINI_API_KEY and genai is not None:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -136,6 +151,8 @@ def check_api_key(x_api_key: Optional[str]):
 # ── Normalización y salida estructurada ───────────────────────────────────────
 def count_pdf_pages(file_path: Path) -> int:
     if file_path.suffix.lower() != ".pdf":
+        return 1
+    if fitz is None:
         return 1
     try:
         with fitz.open(str(file_path)) as doc:
@@ -256,6 +273,10 @@ def table_to_markdown(table: list[list[Any]]) -> str:
 def extract_pdf_tables_markdown(file_path: Path) -> dict[int, list[str]]:
     table_map: dict[int, list[str]] = {}
     try:
+        import pdfplumber
+    except ImportError:
+        return table_map
+    try:
         with pdfplumber.open(str(file_path)) as pdf:
             for page_index, page in enumerate(pdf.pages):
                 extracted = page.extract_tables({
@@ -274,6 +295,8 @@ def extract_pdf_tables_markdown(file_path: Path) -> dict[int, list[str]]:
 
 
 def iter_pdf_page_chunks(pdf_path: Path, dpi: int, chunk_size: int = OCR_CHUNK_PAGES):
+    if fitz is None:
+        raise RuntimeError("PyMuPDF no está disponible en este entorno.")
     doc = fitz.open(str(pdf_path))
     try:
         total = len(doc)
@@ -362,6 +385,8 @@ def build_result(
     }
 
 def try_digital_pdf(file_path: Path) -> Optional[dict[str, Any]]:
+    if fitz is None or is_cloud_runtime():
+        return None
     try:
         table_map = extract_pdf_tables_markdown(file_path)
         pages = []
@@ -412,7 +437,10 @@ def try_digital_pdf(file_path: Path) -> Optional[dict[str, Any]]:
 
 # ── Markitdown ────────────────────────────────────────────────────────────────
 def try_markitdown(file_path: Path) -> Optional[dict[str, Any]]:
+    if is_cloud_runtime():
+        return None
     try:
+        from markitdown import MarkItDown
         md = MarkItDown()
         result = md.convert(str(file_path))
         text = result.text_content.strip()
@@ -447,7 +475,7 @@ def try_gemini_page(image: Image.Image) -> str:
     return normalize_markdown(response.text if response.text else "")
 
 def try_gemini(file_path: Path, lang: str = "spa", *, mode: str = "balanced") -> Optional[dict[str, Any]]:
-    if not GEMINI_API_KEY:
+    if not GEMINI_API_KEY or genai is None:
         return None
     mode = normalize_ocr_mode(mode)
     dpi = ocr_dpi_for_mode(mode)
@@ -480,9 +508,12 @@ def try_gemini(file_path: Path, lang: str = "spa", *, mode: str = "balanced") ->
                 for page_index, page_markdown in sorted(gemini_results, key=lambda item: item[0]):
                     image = by_idx[page_index]
                     final_md = page_markdown
-                    if text_quality_score(page_markdown) < 28 or len(strip_markdown_syntax(page_markdown)) < OCR_MIN_PAGE_CHARS:
+                    if has_tesseract() and (
+                        text_quality_score(page_markdown) < 28
+                        or len(strip_markdown_syntax(page_markdown)) < OCR_MIN_PAGE_CHARS
+                    ):
                         local_markdown = ocr_image_to_markdown(image, lang=lang, mode=mode)
-                        if text_quality_score(local_markdown) > text_quality_score(page_markdown) + 8:
+                        if local_markdown and text_quality_score(local_markdown) > text_quality_score(page_markdown) + 8:
                             final_md = local_markdown
                             local_fallback_pages += 1
                     if final_md:
@@ -493,9 +524,12 @@ def try_gemini(file_path: Path, lang: str = "spa", *, mode: str = "balanced") ->
         else:
             image = Image.open(file_path)
             page_markdown = try_gemini_page(image)
-            if text_quality_score(page_markdown) < 28 or len(strip_markdown_syntax(page_markdown)) < OCR_MIN_PAGE_CHARS:
+            if has_tesseract() and (
+                text_quality_score(page_markdown) < 28
+                or len(strip_markdown_syntax(page_markdown)) < OCR_MIN_PAGE_CHARS
+            ):
                 local_markdown = ocr_image_to_markdown(image, lang=lang, mode=mode)
-                if text_quality_score(local_markdown) > text_quality_score(page_markdown) + 8:
+                if local_markdown and text_quality_score(local_markdown) > text_quality_score(page_markdown) + 8:
                     page_markdown = local_markdown
                     local_fallback_pages += 1
             if page_markdown:
@@ -532,6 +566,8 @@ def upscale_for_ocr(image: Image.Image, *, min_edge: Optional[int] = None) -> Im
     return img
 
 def correct_orientation(image: Image.Image) -> Image.Image:
+    if not pytesseract:
+        return image
     try:
         osd = pytesseract.image_to_osd(image, config="--psm 0")
         match = re.search(r"Rotate:\s+(\d+)", osd)
@@ -596,6 +632,8 @@ LOCAL_OCR_CONFIGS = [
 ]
 
 def run_ocr_candidate(image: Image.Image, lang: str, config: str) -> dict[str, Any]:
+    if not pytesseract:
+        return {"text": "", "confidence": 0.0, "score": 0.0}
     raw_text = pytesseract.image_to_string(image, lang=lang, config=config)
     cleaned = clean_text(raw_text)
     if not cleaned:
@@ -618,6 +656,8 @@ def run_ocr_candidate(image: Image.Image, lang: str, config: str) -> dict[str, A
     }
 
 def ocr_image_to_markdown(image: Image.Image, lang: str = "spa", *, mode: str = "balanced") -> str:
+    if not has_tesseract():
+        return ""
     mode = normalize_ocr_mode(mode)
     min_edge = upscale_min_edge_for_mode(mode)
 
@@ -672,6 +712,8 @@ def ocr_image_to_markdown(image: Image.Image, lang: str = "spa", *, mode: str = 
     return normalize_markdown(chosen["text"])
 
 def process_with_tesseract(file_path: Path, lang: str = "spa", *, mode: str = "balanced") -> dict[str, Any]:
+    if not has_tesseract():
+        raise RuntimeError("Tesseract no está disponible en este entorno.")
     mode = normalize_ocr_mode(mode)
     dpi = ocr_dpi_for_mode(mode)
     suffix = file_path.suffix.lower()
@@ -719,6 +761,18 @@ def process_with_tesseract(file_path: Path, lang: str = "spa", *, mode: str = "b
 def process_file(file_path: Path, lang: str = "spa", *, mode: str = "balanced") -> dict[str, Any]:
     suffix = file_path.suffix.lower()
     mode = normalize_ocr_mode(mode)
+
+    if is_cloud_runtime():
+        if not GEMINI_API_KEY or genai is None:
+            raise RuntimeError(
+                "En Vercel debes configurar GEMINI_API_KEY en Settings → Environment Variables."
+            )
+        if suffix == ".pdf" and fitz is None:
+            raise RuntimeError("PyMuPDF no está disponible en el servidor.")
+        result = try_gemini(file_path, lang=lang, mode=mode)
+        if result:
+            return result
+        raise RuntimeError("No se pudo procesar el documento con Gemini.")
 
     # 1. PDF digital con texto y tablas
     if suffix == ".pdf":
@@ -776,16 +830,19 @@ def save_md(markdown: str, path: Path):
         content = "# Resultado OCR"
     path.write_text(content, encoding="utf-8")
 
-def add_markdown_paragraph(doc: Document, text: str):
-    paragraph = doc.add_paragraph()
-    paragraph.add_run(text)
-
 def save_docx(markdown: str, path: Path):
+    from docx import Document
+    from docx.shared import Pt
+
     content = normalize_markdown(markdown)
     doc = Document()
     normal_style = doc.styles["Normal"]
     normal_style.font.name = "Arial"
     normal_style.font.size = Pt(10.5)
+
+    def add_markdown_paragraph(target_doc: Document, text: str):
+        paragraph = target_doc.add_paragraph()
+        paragraph.add_run(text)
 
     lines = content.split("\n")
     index = 0
@@ -861,6 +918,8 @@ def save_docx(markdown: str, path: Path):
     doc.save(str(path))
 
 def save_pdf(text: str, path: Path):
+    from fpdf import FPDF
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -884,7 +943,9 @@ async def root():
 async def get_config():
     return {
         "max_upload_mb": MAX_UPLOAD_MB,
-        "gemini_enabled": bool(GEMINI_API_KEY),
+        "cloud_runtime": is_cloud_runtime(),
+        "gemini_enabled": bool(GEMINI_API_KEY and genai is not None),
+        "tesseract_enabled": has_tesseract(),
         "ocr_modes": [
             {"id": "fast", "label": "Rápido", "dpi_pdf": ocr_dpi_for_mode("fast")},
             {"id": "balanced", "label": "Equilibrado", "dpi_pdf": ocr_dpi_for_mode("balanced")},
@@ -990,6 +1051,8 @@ async def download(
     return FileResponse(path, media_type=media_map[fmt], filename=download_name)
 
 if __name__ == "__main__":
+    import uvicorn
+
     host = os.getenv("OCR_HOST", "0.0.0.0")
     port = int(os.getenv("OCR_PORT", "8000"))
     reload = os.getenv("OCR_RELOAD", "0").strip().lower() in ("1", "true", "yes")
