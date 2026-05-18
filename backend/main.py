@@ -31,8 +31,18 @@ load_dotenv()
 # ── Config ────────────────────────────────────────────────────────────────────
 API_KEY              = os.getenv("OCR_API_KEY", "sci-ocr-2024")
 GEMINI_API_KEY       = os.getenv("GEMINI_API_KEY", "")
-UPLOAD_DIR           = Path("uploads")
-OUTPUT_DIR           = Path("outputs")
+def _project_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+def _resolve_data_dir(name: str) -> Path:
+    if os.getenv("VERCEL"):
+        return Path("/tmp") / f"ocr-{name}"
+    return Path(name)
+
+
+UPLOAD_DIR           = Path(os.getenv("OCR_UPLOAD_DIR", str(_resolve_data_dir("uploads"))))
+OUTPUT_DIR           = Path(os.getenv("OCR_OUTPUT_DIR", str(_resolve_data_dir("outputs"))))
 MAX_UPLOAD_MB        = 300
 MAX_UPLOAD_BYTES     = MAX_UPLOAD_MB * 1024 * 1024
 MARKITDOWN_MIN_CHARS = 100
@@ -73,8 +83,14 @@ def upscale_min_edge_for_mode(mode: str) -> int:
         return int(os.getenv("OCR_UPSCALE_BALANCED", "1400"))
     return OCR_UPSCALE_MIN_EDGE
 
-TESSERACT_CMD = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
-pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+_default_tesseract = (
+    shutil.which("tesseract")
+    if os.getenv("VERCEL")
+    else r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+)
+TESSERACT_CMD = os.getenv("TESSERACT_CMD", _default_tesseract or "tesseract")
+if TESSERACT_CMD:
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -100,7 +116,15 @@ async def limit_upload_size(request: Request, call_next):
             )
     return await call_next(request)
 
-frontend_path = Path("../frontend")
+def _frontend_dir() -> Path:
+    root = _project_root()
+    for candidate in (root / "frontend", Path(__file__).resolve().parent.parent / "frontend"):
+        if candidate.exists():
+            return candidate
+    return root / "frontend"
+
+
+frontend_path = _frontend_dir()
 if frontend_path.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
 
@@ -851,7 +875,7 @@ def save_pdf(text: str, path: Path):
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    index = Path("../frontend/index.html")
+    index = _frontend_dir() / "index.html"
     if index.exists():
         return HTMLResponse(content=index.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>SCI OCR API</h1><p>Frontend no encontrado.</p>")
