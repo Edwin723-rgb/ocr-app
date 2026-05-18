@@ -1,0 +1,9 @@
+backend/.venv
+backend/uploads
+backend/outputs
+outputs
+uploads
+logs
+__pycache__
+*.bat
+scripts/
