@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f2340" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>SCI OCR — Extractor de Texto</title>
+<style>
+  :root {
+    --navy: #0f2340;
+    --teal: #1a7a5e;
+    --teal-light: #e8f5f0;
+    --teal-mid: #1d9e75;
+    --blue-accent: #2563eb;
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a1a2e;
+    --muted: #64748b;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --radius: 12px;
+    --mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--navy);
+    padding: 0 1.5rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-size: 16px; font-weight: 700; color: #4fd1c5; letter-spacing: -0.5px; }
+  .header-title { color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; }
+  .header-sub { color: rgba(255,255,255,0.4); font-size: 12px; }
+  .key-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .key-wrap input {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 10px;
+    width: 160px;
+    font-family: var(--mono);
+    outline: none;
+  }
+  .key-wrap input::placeholder { color: rgba(255,255,255,0.25); }
+  .layout {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 52px);
+    overflow: hidden;
+  }
+  .panel-left {
+    width: 320px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-section:last-child { border-bottom: none; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  /* Límite badge */
+  .limit-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    color: var(--warning);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+  }
+
+  .drop-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: #fafbfc;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--teal-mid);
+    background: var(--teal-light);
+  }
+  .drop-zone.file-too-big {
+    border-color: var(--danger);
+    background: #fff5f5;
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 28px; margin-bottom: 0.5rem; }
+  .drop-zone p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .drop-zone strong { color: var(--text); }
+  .file-info {
+    display: none;
+    background: var(--teal-light);
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .file-info.show { display: flex; }
+  .file-info.too-big {
+    background: #fff5f5;
+    border-color: #fca5a5;
+  }
+  .file-info-text { flex: 1; }
+  .file-info-name { font-size: 13px; font-weight: 600; color: var(--teal); word-break: break-all; }
+  .file-info-name.too-big { color: var(--danger); }
+  .file-info-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .file-info button {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 14px; padding: 0; flex-shrink: 0;
+  }
+  .progress-section { display: none; }
+  .progress-section.show { display: block; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .progress-bar-wrap {
+    background: #e2e8f0;
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--teal-mid), #34d399);
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .progress-status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid #e2e8f0;
+    border-top-color: var(--teal-mid);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field select {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-size: 13px;
+    background: #fafbfc;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+  }
+  .method-badge {
+    display: none;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 99px;
+    width: fit-content;
+  }
+  .method-badge.show { display: inline-flex; align-items: center; gap: 5px; }
+  .method-badge.markitdown { background: #dbeafe; color: #1d4ed8; }
+  .method-badge.gemini { background: #ede9fe; color: #6d28d9; }
+  .method-badge.tesseract { background: #fef3c7; color: #92400e; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-value { font-size: 18px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
+  .btn-primary { background: var(--teal-mid); color: #fff; width: 100%; }
+  .btn-primary:hover:not(:disabled) { background: var(--teal); }
+  .btn-export { background: var(--blue-accent); color: #fff; width: 100%; }
+  .btn-export:hover:not(:disabled) { background: #1d4ed8; }
+  .btn-new { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 14px; }
+  .btn-new:hover { background: var(--bg); }
+  .btn-copy { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; font-size: 12px; }
+  .btn-copy:hover { background: var(--bg); }
+  .error-msg {
+    background: #fff5f5;
+    border: 1px solid #fca5a5;
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    display: none;
+    margin-top: 10px;
+  }
+  .error-msg.show { display: block; }
+  .warn-msg {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: var(--warning);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    display: none;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .warn-msg.show { display: block; }
+  .warning-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .warning-item {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .panel-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .result-toolbar {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: #fafbfc;
+    min-height: 52px;
+  }
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .page-chip {
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .result-controls {
+    display: none;
+    padding: 0.85rem 1.25rem 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .result-controls.show { display: block; }
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .toggle-btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .toggle-btn.active {
+    background: #eef2ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
+  .page-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+  }
+  .page-tab {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: all 0.15s;
+  }
+  .page-tab.active {
+    background: #eef2ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
+  .result-area { flex: 1; overflow-y: auto; padding: 2rem; }
+  .result-empty {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    gap: 12px;
+  }
+  .result-empty-icon { font-size: 48px; opacity: 0.3; }
+  .result-empty p { font-size: 14px; }
+  .result-content {
+    display: none;
+    max-width: 780px;
+    margin: 0 auto;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #1e293b;
+    overflow-wrap: anywhere;
+  }
+  .result-content.show { display: block; }
+  .result-content h1,
+  .result-content h2,
+  .result-content h3,
+  .result-content h4 {
+    color: #0f172a;
+    line-height: 1.3;
+    margin: 1.2rem 0 0.7rem;
+  }
+  .result-content h1 { font-size: 1.6rem; }
+  .result-content h2 { font-size: 1.3rem; }
+  .result-content h3 { font-size: 1.05rem; }
+  .result-content p { margin: 0 0 1rem; }
+  .result-content ul,
+  .result-content ol {
+    margin: 0 0 1rem 1.4rem;
+  }
+  .result-content li { margin-bottom: 0.35rem; }
+  .result-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.25rem;
+    background: #fff;
+  }
+  .result-content th,
+  .result-content td {
+    border: 1px solid var(--border);
+    padding: 9px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .result-content th {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  .result-content hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+  .result-content blockquote {
+    border-left: 4px solid #bfdbfe;
+    margin: 1rem 0;
+    padding: 0.2rem 0 0.2rem 1rem;
+    color: #475569;
+    background: #f8fbff;
+    border-radius: 0 8px 8px 0;
+  }
+  .result-content code {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1px 5px;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  .mobile-tip {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #14532d;
+  }
+  .mobile-tip code {
+    font-family: var(--mono);
+    font-size: 11px;
+    word-break: break-all;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 900px) {
+    .layout {
+      flex-direction: column;
+      height: auto;
+      min-height: calc(100vh - 52px);
+      overflow: visible;
+    }
+    .panel-left {
+      width: 100%;
+      min-width: 0;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      max-height: none;
+      overflow-y: visible;
+    }
+    .panel-right {
+      min-height: 42vh;
+      flex: 1;
+    }
+    .result-area {
+      padding: 1.25rem 1rem;
+    }
+    .btn-primary, .btn-export {
+      min-height: 44px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    header {
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 52px;
+      padding: 10px 1rem 12px;
+      gap: 8px;
+    }
+    .key-wrap {
+      width: 100%;
+      margin-left: 0;
+    }
+    .key-wrap input {
+      width: 100%;
+      max-width: 100%;
+    }
+    .header-sub { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">SCI</span>
+  <span style="color:rgba(255,255,255,0.2)">|</span>
+  <div>
+    <div class="header-title">OCR Avanzado</div>
+    <div class="header-sub">Extrae texto de documentos escaneados</div>
+  </div>
+  <div class="key-wrap">
+    <input type="password" id="api-key" placeholder="API Key" autocomplete="off" />
+  </div>
+</header>
+
+<div class="layout">
+  <div class="panel-left">
+
+    <div class="panel-section">
+      <div class="section-label">Documento</div>
+      <div class="limit-badge" id="limit-badge">⚠ Límite: 100 MB</div>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp" />
+        <div class="drop-icon">📄</div>
+        <p><strong>Arrastra tu archivo aquí</strong><br>o haz clic para seleccionar<br>
+        <small style="color:#94a3b8; font-size:11px;">PDF, PNG, JPG, TIFF, BMP, WEBP · Máx. 100 MB</small></p>
+      </div>
+      <div class="file-info" id="file-info">
+        <span>📎</span>
+        <div class="file-info-text">
+          <div class="file-info-name" id="file-name"></div>
+          <div class="file-info-size" id="file-size"></div>
+        </div>
+        <button onclick="clearFile()" title="Quitar">✕</button>
+      </div>
+      <div class="warn-msg" id="warn-msg"></div>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <div class="panel-section progress-section" id="progress-section">
+      <div class="section-label">Progreso</div>
+      <div class="progress-label">
+        <span id="progress-text">Subiendo archivo…</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+      </div>
+      <div class="progress-status">
+        <div class="spinner"></div>
+        <span id="progress-detail">Iniciando…</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Opciones</div>
+      <div class="field">
+        <label>Modo OCR</label>
+        <select id="ocr-mode">
+          <option value="fast">Rápido (menos tiempo)</option>
+          <option value="balanced" selected>Equilibrado (recomendado)</option>
+          <option value="quality">Máxima calidad (más lento)</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Idioma OCR</label>
+        <select id="lang">
+          <option value="spa">Español</option>
+          <option value="eng">Inglés</option>
+          <option value="spa+eng">Español + Inglés</option>
+        </select>
+      </div>
+      <div class="mobile-tip" id="mobile-tip">
+        <strong>En el celular:</strong> conecta el teléfono a la misma Wi‑Fi que este equipo, inicia el servidor con host <code>0.0.0.0</code> y abre en el navegador del móvil <code id="mobile-url"></code> (o la IP local de tu PC con el puerto correcto).
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" id="btn-process" onclick="processFile()" disabled>
+          Procesar documento
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section" id="method-section" style="display:none;">
+      <div class="section-label">Motor utilizado</div>
+      <div class="method-badge" id="method-badge"></div>
+    </div>
+
+    <div class="panel-section" id="stats-section" style="display:none;">
+      <div class="section-label">Estadísticas</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-chars">—</div>
+          <div class="stat-label">Caracteres</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-words">—</div>
+          <div class="stat-label">Palabras</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section" id="warnings-section" style="display:none;">
+      <div class="section-label">Observaciones</div>
+      <div class="warning-list" id="warnings-list"></div>
+    </div>
+
+    <div class="panel-section" id="dl-section" style="display:none;">
+      <div class="section-label">Exportar</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn btn-export" id="dl-txt" disabled>⬇ Descargar .txt</button>
+        <button class="btn btn-export" id="dl-md" disabled>⬇ Descargar .md</button>
+        <button class="btn btn-export" id="dl-pdf" disabled>⬇ Descargar .pdf</button>
+        <button class="btn btn-export" id="dl-docx" disabled>⬇ Descargar .docx</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel-right">
+    <div class="result-toolbar">
+      <div id="toolbar-chips" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
+      <div class="toolbar-right">
+        <button class="btn btn-copy" id="btn-copy" onclick="copyText()" style="display:none;">📋 Copiar todo</button>
+        <button class="btn btn-new" onclick="clearFile()" style="display:none;" id="btn-new">+ Nuevo</button>
+      </div>
+    </div>
+    <div class="result-controls" id="result-controls">
+      <div class="toggle-row" id="view-toggle"></div>
+      <div class="page-tabs" id="page-tabs"></div>
+    </div>
+    <div class="result-area">
+      <div class="result-empty" id="result-empty">
+        <div class="result-empty-icon">📋</div>
+        <p>El texto extraído aparecerá aquí</p>
+        <p style="font-size:12px; color:#94a3b8;">Sube un PDF o imagen para comenzar</p>
+      </div>
+      <div class="result-content" id="result-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = window.location.origin;
+  let selectedFile = null;
+  let currentDownloads = {};
+  let currentDownloadNames = {};
+  let MAX_MB = 100;
+  let currentMarkdown = '';
+  let currentPages = [];
+  let currentText = '';
+  let currentView = 'full';
+  let currentPageIndex = 0;
+  let currentTotalPages = 0;
+
+  // Cargar límite real del servidor
+  document.getElementById('mobile-url').textContent = API_BASE;
+
+  fetch(`${API_BASE}/config`)
+    .then(r => r.json())
+    .then(data => {
+      MAX_MB = data.max_upload_mb;
+      document.getElementById('limit-badge').textContent = `⚠ Límite: ${MAX_MB} MB`;
+    })
+    .catch(() => {});
+
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    const tooBig = f.size > MAX_MB * 1024 * 1024;
+
+    document.getElementById('file-name').textContent = f.name;
+    document.getElementById('file-name').className = 'file-info-name' + (tooBig ? ' too-big' : '');
+    document.getElementById('file-size').textContent = formatBytes(f.size) + (tooBig ? ` — excede el límite de ${MAX_MB} MB` : '');
+    document.getElementById('file-info').className = 'file-info show' + (tooBig ? ' too-big' : '');
+    dropZone.classList.toggle('file-too-big', tooBig);
+
+    if (tooBig) {
+      showWarn(`⚠ El archivo pesa ${formatBytes(f.size)} y supera el límite de ${MAX_MB} MB.\nPor favor comprime el PDF en ilovepdf.com antes de subirlo.`);
+      document.getElementById('btn-process').disabled = true;
+    } else {
+      hideWarn();
+      hideError();
+      document.getElementById('btn-process').disabled = false;
+    }
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    currentDownloads = {};
+    currentDownloadNames = {};
+    currentMarkdown = '';
+    currentPages = [];
+    currentText = '';
+    currentView = 'full';
+    currentPageIndex = 0;
+    currentTotalPages = 0;
+    document.getElementById('file-info').className = 'file-info';
+    document.getElementById('btn-process').disabled = true;
+    document.getElementById('progress-section').classList.remove('show');
+    document.getElementById('method-section').style.display = 'none';
+    document.getElementById('stats-section').style.display = 'none';
+    document.getElementById('warnings-section').style.display = 'none';
+    document.getElementById('dl-section').style.display = 'none';
+    document.getElementById('result-content').classList.remove('show');
+    document.getElementById('result-content').innerHTML = '';
+    document.getElementById('result-empty').style.display = '';
+    document.getElementById('result-controls').classList.remove('show');
+    document.getElementById('view-toggle').innerHTML = '';
+    document.getElementById('page-tabs').innerHTML = '';
+    document.getElementById('warnings-list').innerHTML = '';
+    document.getElementById('toolbar-chips').innerHTML = '';
+    document.getElementById('btn-copy').style.display = 'none';
+    document.getElementById('btn-new').style.display = 'none';
+    dropZone.classList.remove('file-too-big');
+    hideError();
+    hideWarn();
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function showProgress(pct, label, detail) {
+    document.getElementById('progress-section').classList.add('show');
+    document.getElementById('progress-text').textContent = label;
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-detail').textContent = detail;
+  }
+
+  function hideProgress() {
+    document.getElementById('progress-section').classList.remove('show');
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderInlineMarkdown(text) {
+    let html = escapeHtml(text);
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    html = html.replace(/(^|[\s(])_([^_]+)_([\s).,!?:;]|$)/g, '$1<em>$2</em>$3');
+    return html;
+  }
+
+  function stripMarkdown(markdown) {
+    return String(markdown || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^\s*[-*]\s+/gm, '')
+      .replace(/^\s*\d+\.\s+/gm, '')
+      .replace(/^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*$/gm, '')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/\|/g, ' ')
+      .replace(/[*_`>#]/g, '')
+      .replace(/\n\s*---\s*\n/g, '\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function isTableSeparator(line) {
+    return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*$/.test(line);
+  }
+
+  function splitTableCells(line) {
+    return line
+      .trim()
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map(cell => renderInlineMarkdown(cell.trim()));
+  }
+
+  function markdownToHtml(markdown) {
+    const source = String(markdown || '').replace(/\r\n/g, '\n');
+    if (!source.trim()) return '';
+
+    const lines = source.split('\n');
+    const html = [];
+    let paragraph = [];
+
+    function flushParagraph() {
+      if (!paragraph.length) return;
+      html.push(`<p>${paragraph.map(renderInlineMarkdown).join('<br>')}</p>`);
+      paragraph = [];
+    }
+
+    let i = 0;
+    while (i < lines.length) {
+      const rawLine = lines[i];
+      const line = rawLine.trimEnd();
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        flushParagraph();
+        i += 1;
+        continue;
+      }
+
+      if (/^---+$/.test(trimmed)) {
+        flushParagraph();
+        html.push('<hr>');
+        i += 1;
+        continue;
+      }
+
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+      if (headingMatch) {
+        flushParagraph();
+        const level = Math.min(headingMatch[1].length, 6);
+        html.push(`<h${level}>${renderInlineMarkdown(headingMatch[2].trim())}</h${level}>`);
+        i += 1;
+        continue;
+      }
+
+      if (trimmed.startsWith('>')) {
+        flushParagraph();
+        const quoteLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('>')) {
+          quoteLines.push(lines[i].trim().replace(/^>\s?/, ''));
+          i += 1;
+        }
+        html.push(`<blockquote>${quoteLines.map(item => `<p>${renderInlineMarkdown(item)}</p>`).join('')}</blockquote>`);
+        continue;
+      }
+
+      if (line.includes('|') && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+        flushParagraph();
+        const headers = splitTableCells(line);
+        i += 2;
+        const rows = [];
+        while (i < lines.length && lines[i].trim() && lines[i].includes('|')) {
+          rows.push(splitTableCells(lines[i]));
+          i += 1;
+        }
+        html.push(
+          '<table><thead><tr>' +
+          headers.map(cell => `<th>${cell}</th>`).join('') +
+          '</tr></thead><tbody>' +
+          rows.map(row => '<tr>' + headers.map((_, idx) => `<td>${row[idx] || ''}</td>`).join('') + '</tr>').join('') +
+          '</tbody></table>'
+        );
+        continue;
+      }
+
+      if (/^\s*[-*]\s+/.test(line)) {
+        flushParagraph();
+        const items = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+          items.push(renderInlineMarkdown(lines[i].replace(/^\s*[-*]\s+/, '').trim()));
+          i += 1;
+        }
+        html.push('<ul>' + items.map(item => `<li>${item}</li>`).join('') + '</ul>');
+        continue;
+      }
+
+      if (/^\s*\d+\.\s+/.test(line)) {
+        flushParagraph();
+        const items = [];
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+          items.push(renderInlineMarkdown(lines[i].replace(/^\s*\d+\.\s+/, '').trim()));
+          i += 1;
+        }
+        html.push('<ol>' + items.map(item => `<li>${item}</li>`).join('') + '</ol>');
+        continue;
+      }
+
+      paragraph.push(line.trim());
+      i += 1;
+    }
+
+    flushParagraph();
+    return html.join('');
+  }
+
+  function updateWarnings(warnings) {
+    const section = document.getElementById('warnings-section');
+    const list = document.getElementById('warnings-list');
+    list.innerHTML = '';
+
+    if (!Array.isArray(warnings) || warnings.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    warnings.forEach(warning => {
+      const item = document.createElement('div');
+      item.className = 'warning-item';
+      item.textContent = warning;
+      list.appendChild(item);
+    });
+    section.style.display = '';
+  }
+
+  function renderResultContent() {
+    const result = document.getElementById('result-content');
+    const activeMarkdown = currentView === 'pages' && currentPages.length
+      ? (currentPages[currentPageIndex]?.markdown || '')
+      : currentMarkdown;
+
+    result.innerHTML = markdownToHtml(activeMarkdown);
+    result.classList.add('show');
+    document.getElementById('result-empty').style.display = 'none';
+  }
+
+  function setResultView(view, pageIndex = 0) {
+    currentView = view;
+    currentPageIndex = pageIndex;
+    renderResultControls();
+    renderResultContent();
+  }
+
+  function renderResultControls() {
+    const controls = document.getElementById('result-controls');
+    const toggle = document.getElementById('view-toggle');
+    const tabs = document.getElementById('page-tabs');
+
+    toggle.innerHTML = '';
+    tabs.innerHTML = '';
+
+    if (!currentMarkdown) {
+      controls.classList.remove('show');
+      return;
+    }
+
+    if (currentPages.length <= 1) {
+      controls.classList.remove('show');
+      return;
+    }
+
+    controls.classList.add('show');
+
+    const fullBtn = document.createElement('button');
+    fullBtn.className = 'toggle-btn' + (currentView === 'full' ? ' active' : '');
+    fullBtn.textContent = 'Documento completo';
+    fullBtn.onclick = () => setResultView('full', 0);
+    toggle.appendChild(fullBtn);
+
+    const pageBtn = document.createElement('button');
+    pageBtn.className = 'toggle-btn' + (currentView === 'pages' ? ' active' : '');
+    pageBtn.textContent = 'Ver por páginas';
+    pageBtn.onclick = () => setResultView('pages', currentPageIndex);
+    toggle.appendChild(pageBtn);
+
+    currentPages.forEach((page, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'page-tab' + (currentView === 'pages' && currentPageIndex === index ? ' active' : '');
+      btn.textContent = 'Página ' + (index + 1);
+      btn.onclick = () => setResultView('pages', index);
+      tabs.appendChild(btn);
+    });
+  }
+
+  async function processFile() {
+    if (!selectedFile) return;
+    const apiKey = document.getElementById('api-key').value.trim();
+    const lang = document.getElementById('lang').value;
+    const ocrMode = document.getElementById('ocr-mode').value;
+
+    currentDownloads = {};
+    currentDownloadNames = {};
+    currentMarkdown = '';
+    currentPages = [];
+    currentText = '';
+    currentView = 'full';
+    currentPageIndex = 0;
+    currentTotalPages = 0;
+    document.getElementById('btn-process').disabled = true;
+    hideError();
+    hideWarn();
+    document.getElementById('method-section').style.display = 'none';
+    document.getElementById('stats-section').style.display = 'none';
+    document.getElementById('warnings-section').style.display = 'none';
+    document.getElementById('dl-section').style.display = 'none';
+    document.getElementById('result-content').classList.remove('show');
+    document.getElementById('result-content').innerHTML = '';
+    document.getElementById('result-empty').style.display = '';
+    document.getElementById('result-controls').classList.remove('show');
+    document.getElementById('view-toggle').innerHTML = '';
+    document.getElementById('page-tabs').innerHTML = '';
+    document.getElementById('warnings-list').innerHTML = '';
+    document.getElementById('toolbar-chips').innerHTML = '';
+    document.getElementById('btn-copy').style.display = 'none';
+    document.getElementById('btn-new').style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const responseData = await uploadWithProgress(formData, apiKey, lang, ocrMode);
+      showResult(responseData, apiKey);
+    } catch (err) {
+      showError(err.message);
+      hideProgress();
+    } finally {
+      document.getElementById('btn-process').disabled = !selectedFile;
+    }
+  }
+
+  function uploadWithProgress(formData, apiKey, lang, ocrMode) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 60);
+          showProgress(pct, 'Subiendo archivo…', `${formatBytes(e.loaded)} de ${formatBytes(e.total)}`);
+        }
+      });
+
+      xhr.upload.addEventListener('load', () => {
+        showProgress(65, 'Procesando documento…', 'Aplicando OCR…');
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 403) { reject(new Error('API Key incorrecta.')); return; }
+        if (xhr.status === 413) {
+          reject(new Error(`Archivo demasiado grande. Límite: ${MAX_MB} MB. Comprime el PDF en ilovepdf.com primero.`));
+          return;
+        }
+        if (xhr.status !== 200) {
+          try { reject(new Error(JSON.parse(xhr.responseText).detail || 'Error ' + xhr.status)); }
+          catch { reject(new Error('Error ' + xhr.status)); }
+          return;
+        }
+        showProgress(95, 'Generando archivos…', 'Preparando descargas…');
+        setTimeout(() => {
+          showProgress(100, '¡Listo!', 'Extracción completada');
+          setTimeout(() => hideProgress(), 1000);
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch { reject(new Error('Respuesta inválida del servidor')); }
+        }, 400);
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Error de red. ¿Está corriendo el servidor?')));
+      const modeParam = encodeURIComponent(ocrMode || 'balanced');
+      xhr.open('POST', `${API_BASE}/ocr?lang=${encodeURIComponent(lang)}&mode=${modeParam}`);
+      if (apiKey) xhr.setRequestHeader('X-API-Key', apiKey);
+      xhr.send(formData);
+    });
+  }
+
+  function showResult(data, apiKey) {
+    currentDownloads = data.downloads || {};
+    currentDownloadNames = data.download_names || {};
+    currentMarkdown = data.markdown || data.text || '';
+    currentPages = Array.isArray(data.pages)
+      ? data.pages.filter(page => page && typeof page.markdown === 'string' && page.markdown.trim())
+      : [];
+    currentText = data.text || stripMarkdown(currentMarkdown);
+    currentTotalPages = Number(data.total_pages || currentPages.length || (currentMarkdown ? 1 : 0));
+    currentView = 'full';
+    currentPageIndex = 0;
+
+    renderResultControls();
+    renderResultContent();
+    updateWarnings(data.warnings);
+
+    const chips = document.getElementById('toolbar-chips');
+    chips.innerHTML = '';
+
+    if (data.ocr_mode) {
+      const modeChip = document.createElement('div');
+      modeChip.className = 'page-chip';
+      modeChip.textContent = 'Modo: ' + data.ocr_mode;
+      chips.appendChild(modeChip);
+    }
+
+    if (currentTotalPages > 0) {
+      const pc = document.createElement('div');
+      pc.className = 'page-chip';
+      pc.textContent = currentTotalPages + (currentTotalPages === 1 ? ' página' : ' páginas');
+      chips.appendChild(pc);
+    }
+
+    const fc = document.createElement('div');
+    fc.className = 'file-chip';
+    fc.textContent = '📄 ' + (selectedFile ? selectedFile.name : 'documento');
+    chips.appendChild(fc);
+
+    document.getElementById('btn-copy').style.display = '';
+    document.getElementById('btn-new').style.display = '';
+
+    const method = data.method || 'tesseract';
+    const badge = document.getElementById('method-badge');
+    const methodClass = (method === 'markitdown' || method === 'digital_pdf')
+      ? 'markitdown'
+      : (method === 'gemini' ? 'gemini' : 'tesseract');
+    const methodLabel = method === 'digital_pdf'
+      ? '📑 PDF + tablas'
+      : method === 'markitdown'
+      ? '⚡ PDF digital'
+      : method === 'gemini'
+        ? '✨ OCR estructurado'
+        : '🔍 OCR local';
+    badge.className = 'method-badge show ' + methodClass;
+    badge.textContent = methodLabel;
+    document.getElementById('method-section').style.display = '';
+
+    const words = currentText.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('stat-chars').textContent = currentText.length.toLocaleString();
+    document.getElementById('stat-words').textContent = words.toLocaleString();
+    document.getElementById('stats-section').style.display = '';
+
+    ['txt', 'md', 'pdf', 'docx'].forEach(fmt => {
+      const btn = document.getElementById('dl-' + fmt);
+      btn.disabled = !currentDownloads[fmt];
+      if (currentDownloads[fmt]) {
+        const url = `${API_BASE}${currentDownloads[fmt]}${apiKey ? '?key=' + encodeURIComponent(apiKey) : ''}`;
+        btn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = url;
+          if (fmt === 'md') {
+            const mdName = currentDownloadNames.md
+              || (selectedFile ? selectedFile.name.replace(/\.[^.]+$/, '') + '.md' : 'documento.md');
+            a.download = mdName;
+          }
+          a.click();
+        };
+      }
+    });
+    document.getElementById('dl-section').style.display = '';
+  }
+
+  async function copyText() {
+    await navigator.clipboard.writeText(currentText);
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '✅ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar todo', 1500);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = '⚠ ' + msg;
+    el.classList.add('show');
+  }
+  function hideError() { document.getElementById('error-msg').classList.remove('show'); }
+  function showWarn(msg) {
+    const el = document.getElementById('warn-msg');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideWarn() { document.getElementById('warn-msg').classList.remove('show'); }
+
+  const saved = localStorage.getItem('sci_ocr_key');
+  if (saved) document.getElementById('api-key').value = saved;
+  document.getElementById('api-key').addEventListener('change', e => {
+    localStorage.setItem('sci_ocr_key', e.target.value);
+  });
+</script>
+</body>
+</html>
