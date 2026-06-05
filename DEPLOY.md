@@ -2,6 +2,8 @@
 
 Guía para publicar la app en un servidor y que el equipo la use desde **cualquier dispositivo** (Windows, Mac, iPhone, Android) abriendo solo un enlace, sin instalar Python ni ejecutar `.bat`.
 
+Guía paso a paso desde cero: [deploy/GUIA-DESDE-CERO.md](deploy/GUIA-DESDE-CERO.md). Cloudflare Tunnel: [deploy/CLOUDFLARE.md](deploy/CLOUDFLARE.md).
+
 ---
 
 ## Requisitos del servidor
