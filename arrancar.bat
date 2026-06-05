@@ -1,17 +1,37 @@
 @echo off
+chcp 65001 >nul
+title SCI OCR - Arrancar
 cd /d "%~dp0"
 
+echo.
+echo  SCI OCR - Iniciando...
+echo.
+
 if not exist "backend\.venv\Scripts\python.exe" (
-  echo ERROR: Falta el entorno virtual en backend\.venv
+  echo  Falta el entorno virtual.
+  echo  Ejecuta primero: instalar.bat
+  echo.
   pause
   exit /b 1
 )
 
-rem Servidor en segundo plano (si no está ya activo)
-start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0scripts\run-server.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\wait-server.ps1" -StartIfNeeded
+if errorlevel 1 (
+  echo.
+  echo  No se pudo iniciar el servidor.
+  echo  Revisa la ventana del servidor o el archivo logs\ocr-server.log
+  echo.
+  pause
+  exit /b 1
+)
 
-rem Esperar a que responda y abrir el navegador
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$url='http://127.0.0.1:8000'; $ok=$false; for ($i=0; $i -lt 40; $i++) { try { $r=Invoke-WebRequest -Uri ($url+'/config') -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { $ok=$true; break } } catch { Start-Sleep -Milliseconds 500 } }; Start-Process $url; if (-not $ok) { Write-Host 'El servidor tarda en arrancar; si la pagina no carga, espera unos segundos y recarga.' }"
+set "APP_URL=http://127.0.0.1:8000/"
+if not "%OCR_PORT%"=="" set "APP_URL=http://127.0.0.1:%OCR_PORT%/"
 
-exit
+start "" "%APP_URL%"
+echo  Servidor listo: %APP_URL%
+echo  Dejalo abierto la ventana "SCI OCR" con los logs.
+echo  Para detener: detener-servidor.bat
+echo.
+ping 127.0.0.1 -n 5 >nul
+exit /b 0

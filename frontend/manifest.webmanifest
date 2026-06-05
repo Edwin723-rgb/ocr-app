@@ -1,0 +1,10 @@
+{
+  "name": "SCI — OCR Documental",
+  "short_name": "SCI OCR",
+  "description": "Extracción de texto de PDF e imágenes — Despacho Jurídico SCI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "es"
+}

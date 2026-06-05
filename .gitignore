@@ -1,8 +1,10 @@
+.env
 backend/.venv/
 backend/.env
 backend/__pycache__/
 backend/uploads/
 backend/outputs/
+backend/jobs/
 outputs/
 uploads/
 logs/

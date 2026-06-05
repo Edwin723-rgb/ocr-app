@@ -1,0 +1,23 @@
+# Extensión opcional para Cloudflare Tunnel (no sustituye docker-compose.yml).
+#
+# Uso en el VPS:
+#   1. Añade CLOUDFLARE_TUNNEL_TOKEN=... en .env (token del túnel en Zero Trust)
+#   2. En Cloudflare → Public Hostname → URL: http://nginx:80
+#   3. docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
+#
+# nginx queda solo en localhost; el túnel es la única entrada pública.
+
+services:
+  nginx:
+    ports:
+      - "127.0.0.1:${OCR_HTTP_PORT:-8080}:80"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      nginx:
+        condition: service_started

@@ -1,10 +1,13 @@
 @echo off
-title Detener SCI OCR
-set PORT=8000
-if not "%OCR_PORT%"=="" set PORT=%OCR_PORT%
+chcp 65001 >nul
+title SCI OCR - Detener
+cd /d "%~dp0"
 
-echo Deteniendo servidor en puerto %PORT%...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$p=%PORT%; Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; if ($?) { Write-Host 'Servidor detenido.' } else { Write-Host 'No habia servidor activo en el puerto' $p }"
+echo.
+echo  Deteniendo servidor OCR...
+echo.
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\stop-server.ps1"
+echo.
 pause
+exit /b 0

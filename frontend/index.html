@@ -3,62 +3,906 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0f2340" />
+<meta name="theme-color" content="#0a0a0a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<title>SCI OCR — Extractor de Texto</title>
+<meta name="apple-mobile-web-app-title" content="SCI OCR" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<title>SCI — OCR Documental</title>
 <style>
   :root {
-    --navy: #0f2340;
-    --teal: #1a7a5e;
-    --teal-light: #e8f5f0;
-    --teal-mid: #1d9e75;
-    --blue-accent: #2563eb;
-    --bg: #f0f2f5;
+    --sci-teal: #00a8b8;
+    --sci-teal-dark: #008a98;
+    --sci-teal-soft: rgba(0, 168, 184, 0.12);
+    --sci-black: #0a0a0a;
+    --sci-ink: #141414;
+    --navy: #0a0a0a;
+    --teal: var(--sci-teal);
+    --teal-light: var(--sci-teal-soft);
+    --teal-mid: var(--sci-teal);
+    --blue-accent: var(--sci-teal);
+    --accent: var(--sci-teal);
+    --accent-hover: var(--sci-teal-dark);
+    --accent-light: var(--sci-teal-soft);
+    --bg: #f4f5f7;
     --surface: #ffffff;
-    --border: #e2e8f0;
-    --text: #1a1a2e;
-    --muted: #64748b;
-    --danger: #dc2626;
-    --warning: #d97706;
-    --radius: 12px;
+    --border: #e8eaed;
+    --border-subtle: #eef0f2;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --danger: #c53030;
+    --warning: #b7791f;
+    --radius: 10px;
+    --radius-lg: 16px;
     --mono: 'Courier New', monospace;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 24px rgba(0,0,0,0.06);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: antialiased;
   }
   header {
-    background: var(--navy);
-    padding: 0 1.5rem;
-    height: 52px;
+    background: #fff;
+    padding: 0 1.25rem;
+    height: 56px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 16px;
     position: sticky;
     top: 0;
     z-index: 100;
+    border-bottom: 1px solid #e8eaed;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
-  .logo { font-size: 16px; font-weight: 700; color: #4fd1c5; letter-spacing: -0.5px; }
-  .header-title { color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; }
-  .header-sub { color: rgba(255,255,255,0.4); font-size: 12px; }
-  .key-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .brand-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .brand-logo {
+    height: 44px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+  }
+  .brand-divider {
+    width: 1px;
+    height: 32px;
+    background: rgba(255,255,255,0.12);
+  }
+  .brand-meta { display: flex; flex-direction: column; gap: 1px; }
+  .header-title {
+    color: #1a1a1a;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .header-sub {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .brand-divider { background: #e5e7eb; }
+  .key-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .key-wrap.hidden { display: none; }
+  .key-status {
+    font-size: 11px;
+    width: 100%;
+    text-align: right;
+    color: #9ca3af;
+  }
+  .key-status.ok { color: #059669; }
+  .key-status.bad { color: #dc2626; }
   .key-wrap input {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
-    color: #fff;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    color: #111;
     font-size: 12px;
-    padding: 5px 10px;
+    padding: 6px 10px;
     width: 160px;
     font-family: var(--mono);
     outline: none;
   }
-  .key-wrap input::placeholder { color: rgba(255,255,255,0.25); }
+  .key-wrap input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
+  .key-wrap input::placeholder { color: #9ca3af; }
+  .btn-key-clear {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    border-radius: 8px;
+    font-size: 11px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-key-clear:hover { background: #f3f4f6; }
+
+  /* ── Pantalla de subida ── */
+  .view-upload {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem 3rem;
+    min-height: calc(100vh - 56px);
+    background: #f5f6f8;
+  }
+  .view-upload.hidden { display: none; }
+  .upload-hero { text-align: center; max-width: 520px; width: 100%; }
+  .upload-brand-logo {
+    height: 72px;
+    width: auto;
+    margin: 0 auto 2rem;
+    display: block;
+    opacity: 0.95;
+  }
+  .upload-hero h1 {
+    font-size: clamp(1.5rem, 3.5vw, 1.875rem);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.03em;
+  }
+  .upload-hero .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.65;
+    margin-bottom: 2.25rem;
+    font-weight: 400;
+  }
+  .drop-zone {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    text-align: center;
+    cursor: default;
+    background: transparent;
+    position: relative;
+  }
+  .drop-zone.drag-over .upload-drop-inner {
+    border-color: var(--sci-teal);
+    background: var(--sci-teal-soft);
+  }
+  .upload-drop-inner {
+    padding: 2.5rem 2rem;
+    border-radius: var(--radius-lg);
+    border: 1.5px dashed var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .drop-zone:hover .upload-drop-inner {
+    border-color: rgba(0, 168, 184, 0.4);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    z-index: 2;
+  }
+  .btn-primary-sci {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 13px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  }
+  .btn-primary-sci:hover { background: #1d4ed8; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3); }
+  .btn-primary-sci:active { transform: scale(0.98); }
+  .drop-hint {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .upload-limit {
+    margin-top: 1.75rem;
+    font-size: 12px;
+    color: #9ca3af;
+    letter-spacing: 0.01em;
+  }
+
+  .home-modes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto 2rem;
+  }
+  @media (max-width: 520px) {
+    .home-modes { grid-template-columns: 1fr; }
+  }
+  .mode-card {
+    background: #fff;
+    border: 1px solid #e8eaed;
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .mode-card:hover { border-color: #93c5fd; box-shadow: 0 4px 12px rgba(37,99,235,0.08); }
+  .mode-card.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 0 1px #2563eb;
+  }
+  .mode-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .mode-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .mode-card .mode-icon { font-size: 22px; margin-bottom: 8px; opacity: 0.85; }
+  .home-panel { max-width: 640px; width: 100%; margin: 0 auto; }
+  .home-panel.hidden { display: none; }
+  .home-back {
+    background: none; border: none; color: var(--sci-teal);
+    font-size: 13px; font-weight: 500; cursor: pointer; margin-bottom: 1rem;
+  }
+  .home-back:hover { text-decoration: underline; }
+
+  .view-md-tool {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    min-height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+  .view-md-tool.hidden { display: none; }
+  .md-tool-main {
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+  .md-tool-sidebar {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 1.25rem;
+    overflow-y: auto;
+  }
+  .md-pick-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+  .md-pick-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 12px; cursor: pointer;
+  }
+  .md-pick-item:has(input:checked) { border-color: var(--sci-teal); background: var(--sci-teal-soft); }
+  .md-pick-item input { margin-top: 2px; }
+  .section-edit-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; }
+  .section-edit-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
+  }
+  .section-edit-item.unchecked { opacity: 0.45; }
+  .md-preview-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    max-height: 50vh;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .md-textarea {
+    width: 100%; min-height: 200px; font-family: var(--mono);
+    font-size: 12px; padding: 10px; border: 1px solid var(--border);
+    border-radius: 8px; resize: vertical;
+  }
+
+  .queue-section-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin: 12px 0 8px;
+  }
+  .queue-section-title:first-child { margin-top: 0; }
+  .queue-item.running {
+    border-color: var(--sci-teal);
+    background: var(--sci-teal-soft);
+    box-shadow: 0 0 0 1px rgba(0,168,184,0.25);
+  }
+  .queue-item.running .q-badge {
+    background: var(--sci-teal); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  }
+  .queue-item.queued-item .q-badge {
+    background: #f1f5f9; color: var(--muted);
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+  }
+  .queue-item .q-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+  .btn-remove-pdf {
+    width: 100%; margin-top: 8px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--danger); font-size: 12px; padding: 8px;
+    border-radius: var(--radius); cursor: pointer;
+  }
+  .btn-remove-pdf:hover { background: #fff5f5; }
+
+  .pdf-page-mode {
+    display: flex; gap: 8px; margin-bottom: 10px;
+  }
+  .pdf-page-mode label {
+    flex: 1; font-size: 11px; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; text-align: center;
+  }
+  .pdf-page-mode label:has(input:checked) {
+    border-color: var(--sci-teal); background: var(--sci-teal-soft);
+  }
+  .pdf-page-mode input { display: none; }
+  .pdf-page-input {
+    width: 100%; padding: 8px 10px; font-size: 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-family: var(--mono);
+  }
+  .pdf-page-hint { font-size: 11px; color: var(--muted); margin: 8px 0 10px; line-height: 1.45; }
+  .btn-trim-pdf {
+    width: 100%; margin-top: 4px;
+    background: var(--surface); border: 1px solid var(--sci-teal);
+    color: var(--sci-teal); font-size: 12px; font-weight: 600;
+    padding: 9px; border-radius: var(--radius); cursor: pointer;
+  }
+  .btn-trim-pdf:hover { background: var(--sci-teal-soft); }
+  .btn-trim-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
+  .pdf-download-actions {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .pdf-download-name {
+    font-size: 11px; color: var(--muted); margin-bottom: 6px;
+    word-break: break-all;
+  }
+
+  /* ── Workspace estilo PaddleOCR ── */
+  .view-workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: 1fr;
+    min-height: calc(100vh - 56px);
+    overflow: hidden;
+    background: #f5f6f8;
+  }
+  .view-workspace.hidden { display: none; }
+  .workspace-sidebar {
+    background: #fff;
+    border-right: 1px solid #e8eaed;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0 24px;
+  }
+  .paddle-nav-top {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .paddle-btn-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px dashed #c7d2fe;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .paddle-btn-new:hover { background: #eff6ff; border-color: #93c5fd; }
+  .paddle-settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+  }
+  .paddle-settings-toggle:hover { background: #f3f4f6; }
+  .paddle-nav-settings {
+    padding: 0 12px 12px;
+    border-bottom: 1px solid #eef0f2;
+  }
+  .paddle-recents-label {
+    padding: 14px 16px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+  }
+  .workspace-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 0;
+    overflow: hidden;
+    background: #f5f6f8;
+  }
+  .paddle-source-column,
+  .paddle-parse-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: #fff;
+  }
+  .paddle-source-column {
+    border-right: 1px solid #e8eaed;
+  }
+  .paddle-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 16px;
+    border-bottom: 1px solid #e8eaed;
+    background: #fafbfc;
+    min-height: 44px;
+  }
+  .paddle-panel-tab {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    padding: 12px 0;
+    border-bottom: 2px solid #2563eb;
+    margin-bottom: -1px;
+  }
+  .paddle-file-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f1f3;
+    font-size: 12px;
+  }
+  .paddle-file-icon {
+    flex-shrink: 0;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #fecaca;
+  }
+  .paddle-file-badge .pdf-card-name,
+  .paddle-file-badge #file-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+    margin: 0;
+    word-break: break-all;
+    text-align: left;
+  }
+  .paddle-file-badge .pdf-card-meta,
+  .paddle-file-badge #file-size {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+    text-align: left;
+  }
+  .workspace-canvas {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+  }
+  .pdf-card {
+    display: contents;
+  }
+  .pdf-thumb-wrap {
+    display: none;
+  }
+  .paddle-source-viewport {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+    background: #f8fafc;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .paddle-image-inner {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+  .paddle-image-inner img,
+  .paddle-source-viewport #pdf-thumb {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .paddle-image-inner svg,
+  .paddle-source-viewport svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .pdf-thumb-placeholder {
+    color: #9ca3af;
+    font-size: 13px;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+  .paddle-source-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid #eef0f2;
+    background: #fafbfc;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .paddle-nav-btn {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: #6b7280;
+  }
+  .paddle-nav-btn:hover:not(:disabled) { border-color: #93c5fd; color: #2563eb; }
+  .paddle-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .paddle-source-actions {
+    display: flex;
+    gap: 12px;
+    padding: 8px 16px 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-change-file, .btn-remove-pdf {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+  }
+  .btn-change-file { border: none; background: none; color: #2563eb; padding: 0; }
+  .btn-change-file:hover { text-decoration: underline; }
+  .btn-remove-pdf:hover { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+  .paddle-parse-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e8eaed;
+    background: #fafbfc;
+    min-height: 44px;
+    flex-wrap: wrap;
+  }
+  .paddle-parse-header label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  .paddle-model-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e40af;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .paddle-model-badge .tag-new {
+    font-size: 9px;
+    background: #7c3aed;
+    color: #fff;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .paddle-parse-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .workspace-result-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-top: none;
+    background: #fff;
+  }
+  .workspace-main.has-paddle-layout #pdf-thumb { display: none !important; }
+  .workspace-main.has-paddle-layout #paddle-page-img { display: block !important; }
+  .workspace-main:not(.has-paddle-layout) #paddle-page-img { display: none !important; }
+  .workspace-main.has-paddle-layout #classic-result-area { display: none !important; }
+  .paddle-parse-layout {
+    display: none;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .paddle-parse-layout.show {
+    display: flex;
+  }
+  .paddle-results-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-block {
+    padding: 1rem 16px;
+    border-bottom: none;
+  }
+  .sidebar-block h2 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .sidebar-block .sidebar-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .range-presets button.active {
+    background: var(--sci-teal-soft);
+    border-color: var(--sci-teal);
+    color: var(--sci-teal-dark);
+    font-weight: 600;
+  }
+  .btn-process-main {
+    background: #2563eb;
+    color: #fff;
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s;
+    box-shadow: none;
+  }
+  .btn-process-main:hover:not(:disabled) { background: #1d4ed8; }
+  .btn-process-main:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-process-main .arrow {
+    width: 24px; height: 24px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .workspace-main.has-paddle-layout .result-toolbar,
+  .workspace-main.has-paddle-layout #result-controls {
+    display: none;
+  }
+  .paddle-wait-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #64748b;
+    text-align: center;
+    gap: 16px;
+  }
+  .paddle-wait-icon {
+    width: 120px;
+    height: 100px;
+    position: relative;
+    background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+  }
+  .paddle-wait-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #2563eb, transparent);
+    animation: paddle-scan 2s ease-in-out infinite;
+  }
+  @keyframes paddle-scan {
+    0% { top: 8px; opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { top: calc(100% - 12px); opacity: 0.3; }
+  }
+  .progress-section:not(.show) { display: none; }
+  .paddle-parse-column:has(.progress-section.show) .paddle-wait-state,
+  .paddle-parse-column:has(.paddle-parse-layout.show) .paddle-wait-state,
+  .paddle-parse-column:has(#result-content.show) .paddle-wait-state {
+    display: none;
+  }
+  .paddle-overlay-rect {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.55);
+    stroke-width: 1.5;
+    pointer-events: all;
+    cursor: pointer;
+  }
+  .paddle-overlay-rect.hover,
+  .paddle-overlay-rect.active {
+    fill: rgba(37, 99, 235, 0.18);
+    stroke: #2563eb;
+    stroke-width: 2.5;
+  }
+  .paddle-overlay-rect.active {
+    fill: rgba(37, 99, 235, 0.24);
+    stroke-width: 3;
+  }
+  .paddle-tab-row {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: #fafbfc;
+  }
+  .paddle-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .paddle-tab-btn.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+    background: #fff;
+  }
+  .paddle-tab-pane {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+    display: none;
+  }
+  .paddle-tab-pane.show { display: block; }
+  .paddle-blocks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .paddle-block-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .paddle-block-card:hover { border-color: #93c5fd; }
+  .paddle-block-card.hover,
+  .paddle-block-card.active {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 1px #2563eb;
+  }
+  .paddle-block-card.active {
+    background: #eff6ff;
+  }
+  .paddle-markdown-block {
+    display: block;
+    padding: 4px 6px;
+    margin: 2px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .paddle-markdown-block.hover,
+  .paddle-markdown-block.active {
+    background: #eff6ff;
+    box-shadow: inset 0 0 0 1px #93c5fd;
+  }
+  .paddle-markdown-block.active {
+    box-shadow: inset 0 0 0 1px #2563eb;
+  }
+  .paddle-block-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .paddle-block-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #2563eb;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+  .paddle-block-score {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  .paddle-block-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+    word-break: break-word;
+  }
+  .paddle-code-view {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #1e293b;
+    margin: 0;
+  }
+  .view-classic {
+    flex: 1;
+    display: flex;
+    min-height: calc(100vh - 56px);
+    overflow: hidden;
+  }
+  .view-classic.hidden { display: none; }
   .layout {
     display: flex;
     flex: 1;
@@ -103,30 +947,6 @@
     margin-bottom: 10px;
   }
 
-  .drop-zone {
-    border: 2px dashed #cbd5e1;
-    border-radius: 10px;
-    padding: 1.5rem 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    background: #fafbfc;
-  }
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--teal-mid);
-    background: var(--teal-light);
-  }
-  .drop-zone.file-too-big {
-    border-color: var(--danger);
-    background: #fff5f5;
-  }
-  .drop-zone input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .drop-icon { font-size: 28px; margin-bottom: 0.5rem; }
-  .drop-zone p { color: var(--muted); font-size: 13px; line-height: 1.5; }
-  .drop-zone strong { color: var(--text); }
   .file-info {
     display: none;
     background: var(--teal-light);
@@ -143,7 +963,7 @@
     border-color: #fca5a5;
   }
   .file-info-text { flex: 1; }
-  .file-info-name { font-size: 13px; font-weight: 600; color: var(--teal); word-break: break-all; }
+  .file-info-name { font-size: 13px; font-weight: 600; color: var(--sci-teal-dark); word-break: break-all; }
   .file-info-name.too-big { color: var(--danger); }
   .file-info-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .file-info button {
@@ -168,10 +988,141 @@
   .progress-bar-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, var(--teal-mid), #34d399);
+    background: linear-gradient(90deg, var(--sci-teal), #33c4d4);
     transition: width 0.3s ease;
     width: 0%;
   }
+  .queue-panel { margin-top: 0; }
+  .queue-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+  .queue-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #fafbfc;
+    font-size: 12px;
+  }
+  .queue-item.active { border-color: var(--sci-teal); background: var(--sci-teal-soft); }
+  .queue-item.paused { border-color: #fde68a; background: #fffbeb; }
+  .queue-item .q-title { font-weight: 600; word-break: break-all; margin-bottom: 4px; }
+  .queue-item .q-meta { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+  .queue-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .queue-actions button {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+  }
+  .queue-actions button:hover { background: #f1f5f9; }
+  .queue-actions button.primary { color: var(--sci-teal); border-color: var(--sci-teal); font-weight: 600; }
+  .queue-actions button.primary:hover { background: var(--sci-teal-soft); }
+  .queue-actions button.danger { color: var(--danger); border-color: #fca5a5; }
+  .history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 12px;
+  }
+  .history-item:hover { background: var(--sci-teal-soft); }
+  .history-item-main { flex: 1; min-width: 0; }
+  .history-item-title { font-weight: 600; line-height: 1.35; word-break: break-word; }
+  .history-item-meta { color: var(--muted); font-size: 10px; margin-top: 3px; }
+  .history-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .history-item .h-status { font-size: 10px; padding: 2px 6px; border-radius: 99px; background: #e2e8f0; align-self: flex-start; margin-bottom: 4px; }
+  .history-item .h-status.ok { background: #d1fae5; color: #065f46; }
+  .history-item .h-status.fail { background: #fee2e2; color: #991b1b; }
+  .history-item .h-dl-md {
+    flex-shrink: 0;
+    border: 1px solid var(--sci-teal);
+    background: var(--sci-teal);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .history-item .h-dl-md:hover { background: var(--sci-teal-dark); border-color: var(--sci-teal-dark); }
+  .history-item .h-open-btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .history-item .h-open-btn:hover { background: #f8fafc; }
+  .home-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .home-history-list {
+    max-height: min(62vh, 540px);
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .upload-hero.history-open { max-width: 920px; }
+  .range-panel { display: none; }
+  .range-panel.show { display: block; }
+  .process-mode-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .process-mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .process-mode-option:hover { background: var(--sci-teal-soft); }
+  .process-mode-option.active {
+    border-color: var(--sci-teal);
+    background: var(--sci-teal-soft);
+    box-shadow: 0 0 0 1px var(--sci-teal);
+  }
+  .process-mode-option input { margin-top: 2px; flex-shrink: 0; }
+  .process-mode-option .pm-title { font-weight: 700; display: block; }
+  .process-mode-option .pm-desc { font-size: 11px; color: var(--muted); margin-top: 2px; display: block; }
+  .range-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .range-row input { width: 72px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .range-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .range-presets button {
+    font-size: 11px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; cursor: pointer;
+  }
+  .range-presets button:hover { background: var(--sci-teal-soft); }
+  .batch-parts { margin-top: 10px; font-size: 12px; }
+  .batch-part-row {
+    padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px;
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .batch-downloads { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
   .progress-status {
     font-size: 12px;
     color: var(--muted);
@@ -183,7 +1134,7 @@
   .spinner {
     width: 12px; height: 12px;
     border: 2px solid #e2e8f0;
-    border-top-color: var(--teal-mid);
+    border-top-color: var(--sci-teal);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     flex-shrink: 0;
@@ -222,6 +1173,8 @@
     text-align: center;
   }
   .stat-value { font-size: 18px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .dl-actions { display: flex; flex-direction: column; gap: 6px; }
   .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .btn {
     padding: 9px 18px;
@@ -238,10 +1191,10 @@
   }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .btn:active:not(:disabled) { transform: scale(0.97); }
-  .btn-primary { background: var(--teal-mid); color: #fff; width: 100%; }
-  .btn-primary:hover:not(:disabled) { background: var(--teal); }
-  .btn-export { background: var(--blue-accent); color: #fff; width: 100%; }
-  .btn-export:hover:not(:disabled) { background: #1d4ed8; }
+  .btn-primary { background: var(--sci-teal); color: #fff; width: 100%; border-radius: var(--radius); }
+  .btn-primary:hover:not(:disabled) { background: var(--sci-teal-dark); }
+  .btn-export { background: var(--sci-ink); color: #fff; width: 100%; border-radius: var(--radius); }
+  .btn-export:hover:not(:disabled) { background: #222; }
   .btn-new { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 14px; }
   .btn-new:hover { background: var(--bg); }
   .btn-copy { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; font-size: 12px; }
@@ -256,7 +1209,9 @@
     display: none;
     margin-top: 10px;
   }
-  .error-msg.show { display: block; }
+  .error-msg.show, #error-msg-ws.show, #error-msg-merge.show, #error-msg-edit.show { display: block; }
+  #error-msg-ws, #warn-msg-ws, #error-msg-merge, #error-msg-edit { margin: 0 0 10px; border-radius: 8px; }
+  .sidebar-block .error-msg, .sidebar-block .warn-msg { margin: 0 0 0; border-left: none; border-right: none; border-top: none; }
   .warn-msg {
     background: #fffbeb;
     border: 1px solid #fde68a;
@@ -268,7 +1223,7 @@
     margin-top: 10px;
     line-height: 1.5;
   }
-  .warn-msg.show { display: block; }
+  .warn-msg.show, #warn-msg-ws.show, #warn-msg-edit.show { display: block; }
   .warning-list {
     display: flex;
     flex-direction: column;
@@ -292,7 +1247,7 @@
   }
   .result-toolbar {
     padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -369,9 +1324,9 @@
     transition: all 0.15s;
   }
   .page-tab.active {
-    background: #eef2ff;
-    border-color: #bfdbfe;
-    color: #1d4ed8;
+    background: var(--sci-teal-soft);
+    border-color: rgba(0, 168, 184, 0.35);
+    color: var(--sci-teal-dark);
   }
   .result-area { flex: 1; overflow-y: auto; padding: 2rem; }
   .result-empty {
@@ -383,7 +1338,7 @@
     color: var(--muted);
     gap: 12px;
   }
-  .result-empty-icon { font-size: 48px; opacity: 0.3; }
+  .result-empty-icon { color: var(--sci-teal); opacity: 0.35; }
   .result-empty p { font-size: 14px; }
   .result-content {
     display: none;
@@ -470,6 +1425,27 @@
     border-radius: 4px;
   }
 
+  @media (max-width: 960px) {
+    .view-workspace, .view-md-tool { grid-template-columns: 1fr; }
+    .workspace-sidebar, .md-tool-sidebar { border-left: none; border-top: 1px solid var(--border); }
+  }
+
+  @media (max-width: 1100px) {
+    .view-workspace {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+    .workspace-sidebar {
+      max-height: 280px;
+      border-right: none;
+      border-bottom: 1px solid #e8eaed;
+    }
+    .workspace-main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+  }
+
   @media (max-width: 900px) {
     .layout {
       flex-direction: column;
@@ -520,139 +1496,461 @@
 <body>
 
 <header>
-  <span class="logo">SCI</span>
-  <span style="color:rgba(255,255,255,0.2)">|</span>
-  <div>
-    <div class="header-title">OCR Avanzado</div>
-    <div class="header-sub">Extrae texto de documentos escaneados</div>
-  </div>
-  <div class="key-wrap">
-    <input type="password" id="api-key" placeholder="API Key" autocomplete="off" />
+  <a class="brand-link" href="/" onclick="event.preventDefault(); clearFile();">
+    <img class="brand-logo" src="/static/assets/logo-sci.png" alt="SCI Despacho Jurídico" />
+    <span class="brand-divider"></span>
+    <span class="brand-meta">
+      <span class="header-title">SCI OCR</span>
+      <span class="header-sub">Document parsing</span>
+    </span>
+  </a>
+  <div class="key-wrap" id="key-wrap">
+    <input type="password" id="api-key" placeholder="API Key (si aplica)" autocomplete="off" />
+    <button type="button" class="btn-key-clear" id="btn-key-clear" title="Quitar clave guardada">Limpiar</button>
+    <span class="key-status" id="key-status"></span>
   </div>
 </header>
 
-<div class="layout">
-  <div class="panel-left">
+<!-- Pantalla principal: elegir modo -->
+<div id="view-upload" class="view-upload">
+  <div class="upload-hero" style="max-width:760px;">
+    <img class="upload-brand-logo" src="/static/assets/logo-sci.png" alt="SCI" />
+    <h1>Herramientas documentales</h1>
+    <p class="subtitle">Elige qué quieres hacer</p>
 
-    <div class="panel-section">
-      <div class="section-label">Documento</div>
-      <div class="limit-badge" id="limit-badge">⚠ Límite: 100 MB</div>
+    <div class="home-modes" id="home-modes">
+      <button type="button" class="mode-card" data-mode="ocr">
+        <div class="mode-icon">📄</div>
+        <h3>OCR de PDF</h3>
+        <p>Extrae texto a Markdown por rangos de página.</p>
+      </button>
+      <button type="button" class="mode-card" data-mode="merge">
+        <div class="mode-icon">🔗</div>
+        <h3>Unir Markdown</h3>
+        <p>Combina varios .md de distintos OCR en un solo archivo.</p>
+      </button>
+      <button type="button" class="mode-card" data-mode="edit">
+        <div class="mode-icon">📑</div>
+        <h3>Editor de PDF</h3>
+        <p>Quitar páginas, unir varios PDF y comprimir (calidad media o alta).</p>
+      </button>
+      <button type="button" class="mode-card" data-mode="history">
+        <div class="mode-icon">🕘</div>
+        <h3>Historial OCR</h3>
+        <p>Revisa y vuelve a descargar los últimos 30 trabajos procesados.</p>
+      </button>
+    </div>
+
+    <div id="panel-history" class="home-panel hidden">
+      <button type="button" class="home-back" onclick="showHomeModes()">← Volver</button>
+      <div class="home-history-header">
+        <h2 style="font-size:1rem;font-weight:600;margin:0;">Historial de trabajos</h2>
+        <button type="button" class="btn-key-clear" id="btn-history-refresh" title="Actualizar historial">↻</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 12px;">
+        Últimos 30 trabajos. Usa <strong>⬇ MD</strong> para descargar el documento completo o <strong>Ver</strong> para abrirlo.
+      </p>
+      <div class="history-list home-history-list" id="history-list">
+        <p style="font-size:12px;color:var(--muted);margin:0;">Aún no hay historial</p>
+      </div>
+    </div>
+
+    <div id="panel-ocr" class="home-panel hidden">
+      <button type="button" class="home-back" onclick="showHomeModes()">← Volver</button>
       <div class="drop-zone" id="drop-zone">
         <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp" />
-        <div class="drop-icon">📄</div>
-        <p><strong>Arrastra tu archivo aquí</strong><br>o haz clic para seleccionar<br>
-        <small style="color:#94a3b8; font-size:11px;">PDF, PNG, JPG, TIFF, BMP, WEBP · Máx. 100 MB</small></p>
+        <div class="upload-drop-inner">
+          <button type="button" class="btn-primary-sci" id="btn-pick-file">Seleccionar PDF</button>
+          <p class="drop-hint">o arrastra el archivo aquí</p>
+        </div>
       </div>
-      <div class="file-info" id="file-info">
+      <p class="upload-limit">
+        <span id="limit-badge">Límite: …</span> · <span id="limit-hint">PDF, PNG, JPG…</span>
+      </p>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+    <div class="warn-msg" id="warn-msg"></div>
+  </div>
+</div>
+
+<!-- Unir MDs -->
+<div id="view-merge" class="view-md-tool hidden">
+  <div class="md-tool-main">
+    <button type="button" class="home-back" onclick="goHome()">← Inicio</button>
+    <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.5rem;">Unir archivos Markdown</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;">
+      Selecciona trabajos OCR completados o sube archivos .md. Se unirán en orden.
+    </p>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Subir archivos .md</label>
+      <input type="file" id="merge-file-input" accept=".md,.markdown,.txt" multiple />
+    </div>
+    <div id="merge-file-list" style="font-size:12px;color:var(--muted);margin-bottom:1rem;"></div>
+    <div class="md-preview-box" id="merge-preview" style="display:none;"></div>
+  </div>
+  <aside class="md-tool-sidebar">
+    <div class="error-msg" id="error-msg-merge"></div>
+    <h2 style="font-size:14px;font-weight:600;margin-bottom:8px;">Desde trabajos OCR</h2>
+    <div class="md-pick-list" id="merge-job-list"></div>
+    <button type="button" class="btn-process-main" id="btn-do-merge" style="margin-top:14px;">
+      Unir seleccionados <span class="arrow">→</span>
+    </button>
+    <div id="merge-result-actions" style="display:none;margin-top:12px;">
+      <button type="button" class="btn btn-export" id="btn-merge-download">⬇ Descargar MD unido</button>
+      <button type="button" class="btn btn-export" id="btn-merge-copy" style="margin-top:6px;">📋 Copiar</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Editor de PDF -->
+<div id="view-edit" class="view-workspace hidden">
+  <div class="workspace-main">
+    <div class="workspace-canvas">
+      <div class="pdf-card">
+        <div class="pdf-thumb-wrap">
+          <img id="pdf-ed-thumb" alt="Vista previa" style="display:none" />
+          <div class="pdf-thumb-placeholder" id="pdf-ed-thumb-ph">Sube un PDF para comenzar</div>
+        </div>
+        <div class="pdf-card-name" id="pdf-ed-name">—</div>
+        <div class="pdf-card-meta" id="pdf-ed-meta"></div>
+        <div class="field" style="margin-top:10px;text-align:left;">
+          <label>Subir o cambiar PDF</label>
+          <input type="file" id="pdf-ed-file-input" accept=".pdf" />
+        </div>
+        <button type="button" class="btn-change-file" onclick="goHome()">← Inicio</button>
+      </div>
+    </div>
+    <div class="workspace-result-wrap" style="min-height:120px;">
+      <div class="result-area" style="padding:1.25rem;">
+        <p id="pdf-ed-status" style="font-size:13px;color:var(--muted);">El PDF editado se descarga desde el panel derecho.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="workspace-sidebar">
+    <div class="error-msg" id="error-msg-edit"></div>
+    <div class="warn-msg" id="warn-msg-edit"></div>
+
+    <div class="sidebar-block">
+      <h2>Descargar PDF</h2>
+      <p class="sidebar-desc">Tras cada acción (recorte, unión o compresión) usa este botón.</p>
+      <div class="pdf-download-actions" id="pdf-ed-download-actions" style="display:none;">
+        <p class="pdf-download-name" id="pdf-ed-download-filename"></p>
+        <button type="button" class="btn btn-export" id="pdf-ed-dl-btn">⬇ Descargar PDF</button>
+      </div>
+      <p id="pdf-ed-dl-hint" style="font-size:12px;color:var(--muted);margin-top:8px;">Aún no hay PDF listo para descargar.</p>
+    </div>
+
+    <div class="sidebar-block">
+      <h2>Quitar páginas</h2>
+      <p class="sidebar-desc"><span id="pdf-ed-pages-label">—</span> páginas actuales.</p>
+      <div class="pdf-page-mode">
+        <label><input type="radio" name="pdf-ed-page-mode" value="remove" checked /> Excluir</label>
+        <label><input type="radio" name="pdf-ed-page-mode" value="keep" /> Conservar solo</label>
+      </div>
+      <input type="text" class="pdf-page-input" id="pdf-ed-page-spec" placeholder="ej. 1,3,5-10" />
+      <p class="pdf-page-hint" id="pdf-ed-page-hint">Páginas a <strong>excluir</strong>. Ej: portada = 1</p>
+      <button type="button" class="btn-trim-pdf" id="pdf-ed-trim">Aplicar recorte</button>
+    </div>
+
+    <div class="sidebar-block">
+      <h2>Unir PDFs</h2>
+      <p class="sidebar-desc">El PDF actual va primero; añade más archivos .pdf y pulsa Unir.</p>
+      <input type="file" id="pdf-ed-merge-files" accept=".pdf" multiple />
+      <p id="pdf-ed-merge-list" style="font-size:11px;color:var(--muted);margin:8px 0;"></p>
+      <button type="button" class="btn-trim-pdf" id="pdf-ed-merge-btn">Unir PDFs</button>
+    </div>
+
+    <div class="sidebar-block">
+      <h2>Comprimir PDF</h2>
+      <p class="sidebar-desc">Reduce peso sin quitar páginas. Alta = mejor calidad; Media = más ligero.</p>
+      <div class="field">
+        <label>Calidad</label>
+        <select id="pdf-ed-compress-quality">
+          <option value="high" selected>Alta — buena calidad, menos reducción</option>
+          <option value="medium">Media — más ligero, texto legible</option>
+        </select>
+      </div>
+      <button type="button" class="btn-trim-pdf" id="pdf-ed-compress" style="margin-top:10px;">Comprimir PDF</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Workspace estilo PaddleOCR -->
+<div id="view-workspace" class="view-workspace hidden">
+  <aside class="workspace-sidebar">
+    <div class="paddle-nav-top">
+      <button type="button" class="paddle-btn-new" onclick="clearFile()">+ Nuevo análisis</button>
+    </div>
+    <div class="error-msg" id="error-msg-ws"></div>
+    <div class="warn-msg" id="warn-msg-ws"></div>
+    <div class="paddle-nav-settings">
+      <div class="sidebar-block" id="process-mode-block">
+        <h2>Modo de procesamiento</h2>
+        <p class="sidebar-desc">Rango de páginas o PDF completo.</p>
+        <div class="process-mode-choice" id="process-mode-choice">
+          <label class="process-mode-option active" id="mode-option-ranges">
+            <input type="radio" name="pdf-process-mode" value="ranges" checked />
+            <span>
+              <span class="pm-title">Por rangos</span>
+              <span class="pm-desc">Bloques de ~50 páginas.</span>
+            </span>
+          </label>
+          <label class="process-mode-option" id="mode-option-full">
+            <input type="radio" name="pdf-process-mode" value="full" />
+            <span>
+              <span class="pm-title">PDF completo</span>
+              <span class="pm-desc">Todas las páginas en un trabajo.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+      <div class="sidebar-block range-panel show" id="range-panel">
+        <h2>Rango de páginas</h2>
+        <p class="sidebar-desc"><span id="pdf-pages-label">—</span> páginas en total.</p>
+        <div class="range-row">
+          <label>Desde</label>
+          <input type="number" id="page-from" min="1" value="1" />
+          <label>Hasta</label>
+          <input type="number" id="page-to" min="1" value="50" />
+        </div>
+        <div class="range-presets" id="range-presets"></div>
+      </div>
+      <div class="sidebar-block">
+        <div class="field">
+          <label>Calidad OCR</label>
+          <select id="ocr-mode">
+            <option value="fast">Rápido</option>
+            <option value="balanced" selected>Equilibrado (recomendado)</option>
+            <option value="quality">Máxima calidad</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:10px;" id="vision-provider-wrap">
+          <label>Motor IA</label>
+          <select id="vision-provider">
+            <option value="auto" selected>Automático (mejor disponible)</option>
+          </select>
+          <p id="vision-provider-hint" style="font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.4;"></p>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>Idioma</label>
+          <select id="lang">
+            <option value="spa">Español</option>
+            <option value="eng">Inglés</option>
+            <option value="spa+eng">Español + Inglés</option>
+          </select>
+        </div>
+        <div style="margin-top:14px;">
+          <button type="button" class="btn-process-main" id="btn-process-range">
+            Iniciar OCR <span class="arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="paddle-recents-label">Recientes</div>
+    <div class="sidebar-block">
+      <div class="section-label">Partes procesadas</div>
+      <div class="batch-parts" id="batch-parts"></div>
+      <div class="batch-downloads" id="batch-downloads" style="display:none;">
+        <button type="button" class="btn btn-export" id="btn-dl-full">⬇ MD completo (PDF entero)</button>
+        <button type="button" class="btn btn-export" id="btn-dl-merged">⬇ MD unificado (partes)</button>
+        <button type="button" class="btn btn-export" id="btn-dl-zip" style="margin-top:6px;">⬇ ZIP de partes</button>
+      </div>
+    </div>
+    <div class="sidebar-block queue-panel" id="queue-section">
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        <span>Cola</span>
+        <span style="display:flex;gap:6px;">
+          <button type="button" class="btn-key-clear" id="btn-queue-cleanup" title="Desbloquear cola">Desbloquear</button>
+          <button type="button" class="btn-key-clear" id="btn-queue-refresh">↻</button>
+        </span>
+      </div>
+      <div id="queue-list"></div>
+    </div>
+    <div id="method-section" style="display:none;"><div class="method-badge" id="method-badge"></div></div>
+    <div id="stats-section" class="sidebar-block" style="display:none;">
+      <div class="section-label">Estadísticas</div>
+      <div style="display:flex;gap:16px;">
+        <div>
+          <div class="stat-label">Caracteres</div>
+          <div class="stat-value" id="stat-chars"></div>
+        </div>
+        <div>
+          <div class="stat-label">Palabras</div>
+          <div class="stat-value" id="stat-words"></div>
+        </div>
+      </div>
+    </div>
+    <div id="warnings-section" style="display:none;"><div class="warning-list" id="warnings-list"></div></div>
+    <div id="dl-section" class="sidebar-block" style="display:none;">
+      <div class="section-label">Descargar resultado</div>
+      <div class="dl-actions">
+        <button type="button" class="btn btn-export" id="dl-md" disabled>⬇ Markdown (.md)</button>
+        <button type="button" class="btn btn-export" id="dl-txt" disabled>⬇ Texto (.txt)</button>
+        <button type="button" class="btn btn-export" id="dl-docx" disabled>⬇ Word (.docx)</button>
+        <button type="button" class="btn btn-export" id="dl-pdf" disabled>⬇ PDF</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="workspace-main" id="workspace-main">
+    <section class="paddle-source-column">
+      <div class="paddle-panel-header">
+        <span class="paddle-panel-tab">Archivo fuente</span>
+      </div>
+      <div class="paddle-file-badge">
+        <span class="paddle-file-icon">PDF</span>
+        <div>
+          <div class="pdf-card-name" id="file-name"></div>
+          <div class="pdf-card-meta" id="file-size"></div>
+        </div>
+      </div>
+      <div class="workspace-canvas" id="workspace-canvas">
+        <div class="pdf-card">
+          <div class="pdf-thumb-wrap">
+            <div class="pdf-thumb-placeholder" id="pdf-thumb-placeholder">Generando vista previa…</div>
+          </div>
+        </div>
+        <div class="paddle-source-viewport">
+          <div class="paddle-image-inner" id="paddle-image-inner">
+            <img id="pdf-thumb" alt="Vista previa" style="display:none" />
+            <img id="paddle-page-img" alt="Página fuente" style="display:none" />
+            <svg id="paddle-overlay-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+      </div>
+      <div class="paddle-source-footer">
+        <button type="button" class="paddle-nav-btn" id="paddle-prev-page" title="Página anterior">‹</button>
+        <span id="paddle-page-indicator">1 / 1</span>
+        <button type="button" class="paddle-nav-btn" id="paddle-next-page" title="Página siguiente">›</button>
+      </div>
+      <div class="paddle-source-actions">
+        <button type="button" class="btn-change-file" onclick="clearFile()">Cambiar PDF</button>
+        <button type="button" class="btn-remove-pdf" id="btn-remove-pdf" onclick="removePdfFromServer()">Quitar del servidor</button>
+      </div>
+    </section>
+
+    <section class="paddle-parse-column">
+      <div class="paddle-parse-header">
+        <label>Motor OCR</label>
+        <span class="paddle-model-badge" id="paddle-model-badge">Tesseract + PaddleOCR <span class="tag-new">LOCAL</span></span>
+      </div>
+      <div class="paddle-parse-body">
+        <div class="sidebar-block progress-section" id="progress-section">
+          <div class="progress-label">
+            <span id="progress-text">Subiendo…</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+          </div>
+          <div class="progress-status">
+            <div class="spinner"></div>
+            <span id="progress-detail">Iniciando…</span>
+          </div>
+        </div>
+        <div class="paddle-wait-state" id="paddle-wait-state">
+          <div class="paddle-wait-icon" aria-hidden="true"></div>
+          <p id="paddle-wait-text">Configura el rango en la barra lateral e inicia el análisis.</p>
+        </div>
+        <div id="paddle-parse-layout" class="paddle-parse-layout">
+          <div class="paddle-results-panel">
+            <div class="paddle-tab-row">
+              <button type="button" class="paddle-tab-btn active" data-paddle-tab="analysis">Análisis documento</button>
+              <button type="button" class="paddle-tab-btn" data-paddle-tab="markdown">Markdown</button>
+              <button type="button" class="paddle-tab-btn" data-paddle-tab="json">JSON</button>
+            </div>
+            <div id="paddle-tab-analysis" class="paddle-tab-pane show">
+              <div class="paddle-blocks-list" id="paddle-blocks-list"></div>
+            </div>
+            <div id="paddle-tab-markdown" class="paddle-tab-pane">
+              <pre class="paddle-code-view" id="paddle-markdown-view"></pre>
+            </div>
+            <div id="paddle-tab-json" class="paddle-tab-pane">
+              <pre class="paddle-code-view" id="paddle-json-view"></pre>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-result-wrap">
+          <div class="result-toolbar">
+            <div id="toolbar-chips" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
+            <div class="toolbar-right">
+              <button class="btn btn-copy" id="btn-copy" onclick="copyText()" style="display:none;">📋 Copiar todo</button>
+              <button class="btn btn-new" onclick="clearFile()" style="display:none;" id="btn-new">+ Nuevo</button>
+            </div>
+          </div>
+          <div class="result-controls" id="result-controls">
+            <div class="toggle-row" id="view-toggle"></div>
+            <div class="page-tabs" id="page-tabs"></div>
+          </div>
+          <div class="result-area" id="classic-result-area">
+            <div class="result-empty" id="result-empty">
+              <div class="result-empty-icon" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <p>Resultado del análisis</p>
+              <p style="font-size:12px; color:#9ca3af;">Aparecerá aquí al terminar el OCR</p>
+            </div>
+            <div class="result-content" id="result-content"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Imágenes u otros formatos -->
+<div id="view-classic" class="view-classic hidden layout">
+  <div class="panel-left">
+    <div class="panel-section">
+      <div class="section-label">Archivo</div>
+      <div class="file-info show" id="file-info">
         <span>📎</span>
         <div class="file-info-text">
-          <div class="file-info-name" id="file-name"></div>
-          <div class="file-info-size" id="file-size"></div>
+          <div class="file-info-name" id="classic-file-name"></div>
+          <div class="file-info-size" id="classic-file-size"></div>
         </div>
         <button onclick="clearFile()" title="Quitar">✕</button>
       </div>
-      <div class="warn-msg" id="warn-msg"></div>
-      <div class="error-msg" id="error-msg"></div>
-    </div>
-
-    <div class="panel-section progress-section" id="progress-section">
-      <div class="section-label">Progreso</div>
-      <div class="progress-label">
-        <span id="progress-text">Subiendo archivo…</span>
-        <span id="progress-pct">0%</span>
-      </div>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar-fill" id="progress-bar"></div>
-      </div>
-      <div class="progress-status">
-        <div class="spinner"></div>
-        <span id="progress-detail">Iniciando…</span>
-      </div>
-    </div>
-
-    <div class="panel-section">
-      <div class="section-label">Opciones</div>
-      <div class="field">
+      <div class="field" style="margin-top:12px;">
         <label>Modo OCR</label>
-        <select id="ocr-mode">
-          <option value="fast">Rápido (menos tiempo)</option>
-          <option value="balanced" selected>Equilibrado (recomendado)</option>
-          <option value="quality">Máxima calidad (más lento)</option>
+        <select id="ocr-mode-classic">
+          <option value="balanced" selected>Equilibrado</option>
+          <option value="quality">Máxima calidad</option>
+          <option value="fast">Rápido</option>
         </select>
       </div>
       <div class="field" style="margin-top:10px;">
-        <label>Idioma OCR</label>
-        <select id="lang">
+        <label>Motor IA</label>
+        <select id="vision-provider-classic">
+          <option value="auto" selected>Automático (mejor disponible)</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Idioma</label>
+        <select id="lang-classic">
           <option value="spa">Español</option>
           <option value="eng">Inglés</option>
           <option value="spa+eng">Español + Inglés</option>
         </select>
       </div>
-      <div class="mobile-tip" id="mobile-tip">
-        <strong>En el celular:</strong> conecta el teléfono a la misma Wi‑Fi que este equipo, inicia el servidor con host <code>0.0.0.0</code> y abre en el navegador del móvil <code id="mobile-url"></code> (o la IP local de tu PC con el puerto correcto).
-      </div>
-      <div style="margin-top:12px;">
-        <button class="btn btn-primary" id="btn-process" onclick="processFile()" disabled>
-          Procesar documento
-        </button>
-      </div>
+      <button class="btn btn-primary" id="btn-process" onclick="processFile()" disabled style="margin-top:12px;">
+        Procesar documento
+      </button>
     </div>
-
-    <div class="panel-section" id="method-section" style="display:none;">
-      <div class="section-label">Motor utilizado</div>
-      <div class="method-badge" id="method-badge"></div>
-    </div>
-
-    <div class="panel-section" id="stats-section" style="display:none;">
-      <div class="section-label">Estadísticas</div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-chars">—</div>
-          <div class="stat-label">Caracteres</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-words">—</div>
-          <div class="stat-label">Palabras</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel-section" id="warnings-section" style="display:none;">
-      <div class="section-label">Observaciones</div>
-      <div class="warning-list" id="warnings-list"></div>
-    </div>
-
-    <div class="panel-section" id="dl-section" style="display:none;">
-      <div class="section-label">Exportar</div>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <button class="btn btn-export" id="dl-txt" disabled>⬇ Descargar .txt</button>
-        <button class="btn btn-export" id="dl-md" disabled>⬇ Descargar .md</button>
-        <button class="btn btn-export" id="dl-pdf" disabled>⬇ Descargar .pdf</button>
-        <button class="btn btn-export" id="dl-docx" disabled>⬇ Descargar .docx</button>
-      </div>
-    </div>
-
+    <div class="panel-section progress-section" id="progress-section-classic"></div>
   </div>
-
   <div class="panel-right">
     <div class="result-toolbar">
-      <div id="toolbar-chips" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
-      <div class="toolbar-right">
-        <button class="btn btn-copy" id="btn-copy" onclick="copyText()" style="display:none;">📋 Copiar todo</button>
-        <button class="btn btn-new" onclick="clearFile()" style="display:none;" id="btn-new">+ Nuevo</button>
-      </div>
-    </div>
-    <div class="result-controls" id="result-controls">
-      <div class="toggle-row" id="view-toggle"></div>
-      <div class="page-tabs" id="page-tabs"></div>
+      <div id="toolbar-chips-classic"></div>
     </div>
     <div class="result-area">
-      <div class="result-empty" id="result-empty">
-        <div class="result-empty-icon">📋</div>
+      <div class="result-empty" id="result-empty-classic">
         <p>El texto extraído aparecerá aquí</p>
-        <p style="font-size:12px; color:#94a3b8;">Sube un PDF o imagen para comenzar</p>
       </div>
-      <div class="result-content" id="result-content"></div>
     </div>
   </div>
 </div>
@@ -662,24 +1960,1053 @@
   let selectedFile = null;
   let currentDownloads = {};
   let currentDownloadNames = {};
-  let MAX_MB = 100;
+  let MAX_MB = 300;
+  let HEAVY_ASYNC_MB = 15;
+  let HEAVY_ASYNC_PAGES = 35;
+  let activeJobId = null;
+  let queuePollTimer = null;
+  let pdfSourceId = null;
+  let pdfBatchId = null;
+  let pdfTotalPages = 0;
+  let pdfRegistering = false;
+  let pdfProcessingMode = 'ranges';
   let currentMarkdown = '';
   let currentPages = [];
   let currentText = '';
   let currentView = 'full';
   let currentPageIndex = 0;
   let currentTotalPages = 0;
+  let apiKeyRequired = false;
+  let paddleLayoutActive = false;
+  let paddleSelectedBlockId = null;
+  let paddleHoveredBlockId = null;
+  let paddleTab = 'analysis';
 
-  // Cargar límite real del servidor
-  document.getElementById('mobile-url').textContent = API_BASE;
+  const apiKeyInput = document.getElementById('api-key');
+  const keyWrap = document.getElementById('key-wrap');
+  const keyStatus = document.getElementById('key-status');
+
+  function getApiKey() {
+    return apiKeyInput.value.trim();
+  }
+
+  function setKeyStatus(text, state) {
+    keyStatus.textContent = text || '';
+    keyStatus.className = 'key-status' + (state ? ' ' + state : '');
+  }
+
+  async function verifyApiKey() {
+    if (!apiKeyRequired) {
+      setKeyStatus('Sin clave en local', 'ok');
+      return true;
+    }
+    const key = getApiKey();
+    if (!key) {
+      setKeyStatus('Ingresa la clave de backend/.env', 'bad');
+      return false;
+    }
+    try {
+      const r = await fetch(`${API_BASE}/auth/check`, { headers: { 'X-API-Key': key } });
+      const data = await r.json();
+      if (data.ok) {
+        setKeyStatus('Clave correcta', 'ok');
+        return true;
+      }
+      setKeyStatus('Clave incorrecta', 'bad');
+      return false;
+    } catch {
+      setKeyStatus('', '');
+      return false;
+    }
+  }
+
+  function clearSavedApiKey() {
+    apiKeyInput.value = '';
+    localStorage.removeItem('sci_ocr_key');
+    setKeyStatus('', '');
+    hideError();
+  }
+
+  document.getElementById('btn-key-clear').addEventListener('click', clearSavedApiKey);
+  document.getElementById('btn-queue-refresh').addEventListener('click', () => refreshQueueAndHistory());
+  document.getElementById('btn-history-refresh').addEventListener('click', () => refreshHistoryOnly());
+  document.getElementById('btn-queue-cleanup').addEventListener('click', async () => {
+    try {
+      const res = await fetch(`${API_BASE}/ocr/queue/cleanup?force=1`, { method: 'POST', headers: apiHeaders() });
+      if (!res.ok) throw new Error('No se pudo desbloquear la cola');
+      const data = await res.json();
+      const n = (data.cancelled || 0) + (data.stale_running_cleared || 0) + (data.unstuck || 0);
+      if (n > 0) showWarnWs(`Cola desbloqueada (${n} ajuste(s)).`);
+      else showWarnWs('Cola revisada. Si no avanza, reinicia arrancar.bat.');
+      await refreshQueueAndHistory();
+    } catch (e) {
+      showError(e.message);
+    }
+  });
+
+  function apiHeaders() {
+    const key = getApiKey();
+    return key ? { 'X-API-Key': key } : {};
+  }
+
+  function statusLabel(status) {
+    const map = {
+      queued: 'En cola',
+      processing: 'Procesando',
+      paused: 'En pausa',
+      completed: 'Completado',
+      failed: 'Error',
+      cancelled: 'Cancelado',
+    };
+    return map[status] || status;
+  }
+
+  async function jobAction(jobId, action) {
+    try {
+      const res = await fetch(`${API_BASE}/ocr/jobs/${jobId}/${action}`, {
+        method: 'POST',
+        headers: apiHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `No se pudo ${action}`);
+      }
+      await refreshQueueAndHistory();
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  async function jobPause(jobId, yieldSlot = true) {
+    try {
+      const form = new FormData();
+      form.append('yield_slot', yieldSlot ? 'true' : 'false');
+      const res = await fetch(`${API_BASE}/ocr/jobs/${jobId}/pause`, {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo pausar');
+      }
+      await refreshQueueAndHistory();
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  async function jobPrioritize(jobId) {
+    try {
+      const res = await fetch(`${API_BASE}/ocr/jobs/${jobId}/prioritize`, {
+        method: 'POST',
+        headers: apiHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo priorizar');
+      }
+      await refreshQueueAndHistory();
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  async function jobQueueMove(jobId, direction) {
+    try {
+      const form = new FormData();
+      form.append('direction', direction);
+      const res = await fetch(`${API_BASE}/ocr/jobs/${jobId}/queue-move`, {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo mover en la cola');
+      }
+      await refreshQueueAndHistory();
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function renderQueue(jobs, runningId) {
+    const el = document.getElementById('queue-list');
+    if (!jobs || !jobs.length) {
+      el.innerHTML = '<p style="font-size:12px;color:var(--muted);margin:0;">Sin trabajos activos</p>';
+      return;
+    }
+    const running = jobs.filter(j =>
+      j.status === 'processing' || (j.is_running && j.status !== 'paused')
+    );
+    const queued = jobs.filter(j =>
+      (j.in_queue || j.status === 'queued' || j.status === 'paused') &&
+      !running.some(r => r.job_id === j.job_id)
+    ).sort((a, b) => (a.queue_position || 99) - (b.queue_position || 99));
+
+    el.innerHTML = '';
+
+    if (running.length) {
+      const h = document.createElement('div');
+      h.className = 'queue-section-title';
+      h.textContent = '▶ Trabajando ahora';
+      el.appendChild(h);
+      running.forEach(job => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = buildQueueItemHtml(job, 'EN CURSO', 'running');
+        attachQueueActions(wrap.firstElementChild, job, { isRunning: true });
+        el.appendChild(wrap.firstElementChild);
+      });
+    }
+
+    if (queued.length) {
+      const h = document.createElement('div');
+      h.className = 'queue-section-title';
+      h.textContent = `⏳ En cola (${queued.length}) — el #1 será el siguiente`;
+      el.appendChild(h);
+      queued.forEach((job, i) => {
+        const wrap = document.createElement('div');
+        const badge = job.status === 'paused'
+          ? `#${i + 1} · en pausa`
+          : `#${i + 1} · siguiente${i === 0 ? ' ⭐' : ''}`;
+        wrap.innerHTML = buildQueueItemHtml(job, badge, job.status === 'paused' ? 'paused' : 'queued-item');
+        attachQueueActions(wrap.firstElementChild, job, {
+          queueIndex: i,
+          queueLength: queued.length,
+        });
+        el.appendChild(wrap.firstElementChild);
+      });
+    }
+
+    if (!running.length && !queued.length) {
+      el.innerHTML = '<p style="font-size:12px;color:var(--muted);margin:0;">Sin trabajos activos</p>';
+    }
+  }
+
+  const DL_LABELS = {
+    md: '⬇ Markdown (.md)',
+    txt: '⬇ Texto (.txt)',
+    docx: '⬇ Word (.docx)',
+    pdf: '⬇ PDF',
+  };
+
+  function historyDownloadUrl(item) {
+    const keyQ = getApiKey() ? '?key=' + encodeURIComponent(getApiKey()) : '';
+    if (item.full_document && item.batch_id) {
+      return `${API_BASE}/download/batch/${item.batch_id}/full.md${keyQ}`;
+    }
+    const mdPath = (item.downloads && item.downloads.md) || `/download/${item.job_id}/md`;
+    return `${API_BASE}${mdPath}${keyQ}`;
+  }
+
+  function historyDownloadName(item) {
+    const raw = (item.download_names && item.download_names.md)
+      || ((item.source_filename || 'documento').replace(/\.[^.]+$/, '') + '.md');
+    return raw.replace(/_COMPLETO(?=\.md$)/i, '');
+  }
+
+  async function triggerHistoryDownload(item) {
+    const url = historyDownloadUrl(item);
+    const mdName = historyDownloadName(item);
+    try {
+      const res = await fetch(url, { headers: apiHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo descargar el MD');
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = mdName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function renderHistory(items) {
+    const el = document.getElementById('history-list');
+    if (!items || !items.length) {
+      el.innerHTML = '<p style="font-size:12px;color:var(--muted);margin:0;">Aún no hay historial</p>';
+      return;
+    }
+    el.innerHTML = '';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      const ok = item.status === 'completed';
+      const when = item.completed_at ? new Date(item.completed_at).toLocaleString() : '';
+      const pages = item.pages_total ? `${item.pages_total} pág.` : '';
+      row.innerHTML = `
+        <div class="history-item-main">
+          <span class="h-status ${ok ? 'ok' : 'fail'}">${statusLabel(item.status)}</span>
+          <div class="history-item-title">${escapeHtml(item.source_filename || item.job_id)}</div>
+          <div class="history-item-meta">${escapeHtml([pages, when].filter(Boolean).join(' · '))}</div>
+        </div>
+        ${ok ? `
+          <div class="history-item-actions">
+            <button type="button" class="h-dl-md" title="Descargar MD completo">⬇ MD</button>
+            <button type="button" class="h-open-btn" title="Abrir en el workspace">Ver</button>
+          </div>` : ''}`;
+      if (ok) {
+        row.querySelector('.h-dl-md')?.addEventListener('click', (event) => {
+          event.stopPropagation();
+          triggerHistoryDownload(item);
+        });
+        row.querySelector('.h-open-btn')?.addEventListener('click', (event) => {
+          event.stopPropagation();
+          openHistoryJob(item.job_id);
+        });
+      }
+      el.appendChild(row);
+    });
+  }
+
+  async function openHistoryJob(jobId) {
+    try {
+      const res = await fetch(`${API_BASE}/ocr/status/${jobId}`, { headers: apiHeaders() });
+      if (!res.ok) throw new Error('No se pudo cargar el trabajo');
+      const data = await res.json();
+      if (data.text !== undefined) {
+        showView('workspace');
+        showResult(data, getApiKey());
+      }
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  async function refreshHistoryOnly() {
+    try {
+      const res = await fetch(`${API_BASE}/ocr/history`, { headers: apiHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      renderHistory(data.items || []);
+    } catch { /* silencioso */ }
+  }
+
+  async function refreshQueueAndHistory() {
+    try {
+      const [qRes, hRes] = await Promise.all([
+        fetch(`${API_BASE}/ocr/queue`, { headers: apiHeaders() }),
+        fetch(`${API_BASE}/ocr/history`, { headers: apiHeaders() }),
+      ]);
+      let jobs = [];
+      if (qRes.ok) {
+        const q = await qRes.json();
+        jobs = q.jobs || [];
+        renderQueue(jobs, q.running_job_id);
+        const stuck = !q.running_job_id && (q.queued_jobs || []).some(j =>
+          (j.detail || '').includes('Esperando turno') && (j.progress || 0) === 0
+        );
+        if (stuck && !window._queueUnstickAttempted) {
+          window._queueUnstickAttempted = true;
+          fetch(`${API_BASE}/ocr/queue/cleanup?force=1`, { method: 'POST', headers: apiHeaders() })
+            .then(() => refreshQueueAndHistory())
+            .catch(() => {});
+        }
+      }
+      if (!jobs.length && activeJobId) {
+        try {
+          const sRes = await fetch(`${API_BASE}/ocr/status/${activeJobId}`, { headers: apiHeaders() });
+          if (sRes.ok && sRes.status !== 500) {
+            const data = await sRes.json();
+            if (data.status && data.status !== 'completed') {
+              renderQueue([{ ...data, job_id: activeJobId, source_filename: data.source_filename || selectedFile?.name }], null);
+            }
+          }
+        } catch { /* ignore */ }
+      }
+      if (hRes.ok) {
+        const h = await hRes.json();
+        renderHistory(h.items || []);
+      }
+      if (pdfBatchId) refreshBatchStatus();
+    } catch { /* silencioso */ }
+  }
+
+  function startQueuePolling() {
+    if (queuePollTimer) return;
+    refreshQueueAndHistory();
+    queuePollTimer = setInterval(refreshQueueAndHistory, 2500);
+  }
+
+  function stopQueuePolling() {
+    if (queuePollTimer) {
+      clearInterval(queuePollTimer);
+      queuePollTimer = null;
+    }
+  }
+
+  const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+  function showView(name) {
+    document.getElementById('view-upload').classList.toggle('hidden', name !== 'upload');
+    document.getElementById('view-workspace').classList.toggle('hidden', name !== 'workspace');
+    document.getElementById('view-classic').classList.toggle('hidden', name !== 'classic');
+    document.getElementById('view-merge').classList.toggle('hidden', name !== 'merge');
+    document.getElementById('view-edit').classList.toggle('hidden', name !== 'edit');
+  }
+
+  function showHomeModes() {
+    document.getElementById('home-modes').style.display = '';
+    document.getElementById('panel-ocr').classList.add('hidden');
+    document.getElementById('panel-history').classList.add('hidden');
+    document.querySelector('.upload-hero')?.classList.remove('history-open');
+    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+  }
+
+  function goHome() {
+    showView('upload');
+    showHomeModes();
+    hideError();
+    hideWarn();
+  }
+
+  function showHistoryPanel() {
+    document.getElementById('home-modes').style.display = 'none';
+    document.getElementById('panel-ocr').classList.add('hidden');
+    document.getElementById('panel-history').classList.remove('hidden');
+    document.querySelector('.upload-hero')?.classList.add('history-open');
+    refreshHistoryOnly();
+  }
+
+  document.querySelectorAll('.mode-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const mode = card.dataset.mode;
+      document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      if (mode === 'ocr') {
+        document.getElementById('home-modes').style.display = 'none';
+        document.getElementById('panel-ocr').classList.remove('hidden');
+        document.getElementById('panel-history').classList.add('hidden');
+        document.querySelector('.upload-hero')?.classList.remove('history-open');
+      } else if (mode === 'history') {
+        showView('upload');
+        showHistoryPanel();
+      } else if (mode === 'merge') {
+        showView('merge');
+        loadMergeJobList();
+      } else if (mode === 'edit') {
+        showView('edit');
+      }
+    });
+  });
+
+  let mergeUploadedFiles = [];
+  let pdfEditorSourceId = null;
+  let pdfEditorMergeFiles = [];
+
+  async function loadMergeJobList() {
+    const el = document.getElementById('merge-job-list');
+    el.innerHTML = '<p style="font-size:12px;color:var(--muted);">Cargando…</p>';
+    try {
+      const res = await fetch(`${API_BASE}/ocr/completed-mds`, { headers: apiHeaders() });
+      const data = await res.json();
+      const items = data.items || [];
+      if (!items.length) {
+        el.innerHTML = '<p style="font-size:12px;color:var(--muted);">No hay trabajos OCR con .md aún.</p>';
+        return;
+      }
+      el.innerHTML = '';
+      items.forEach(item => {
+        const row = document.createElement('label');
+        row.className = 'md-pick-item';
+        row.innerHTML = `
+          <input type="checkbox" value="${item.job_id}" data-label="${escapeHtml(item.label)}" />
+          <span><strong>${escapeHtml(item.label)}</strong><br><span style="color:var(--muted)">${item.size_kb} KB</span></span>`;
+        el.appendChild(row);
+      });
+    } catch {
+      el.innerHTML = '<p style="color:var(--danger);font-size:12px;">Error al cargar lista</p>';
+    }
+  }
+
+  document.getElementById('merge-file-input').addEventListener('change', e => {
+    mergeUploadedFiles = Array.from(e.target.files || []);
+    const list = document.getElementById('merge-file-list');
+    if (!mergeUploadedFiles.length) { list.textContent = ''; return; }
+    list.textContent = mergeUploadedFiles.map(f => f.name).join(', ');
+  });
+
+  document.getElementById('btn-do-merge').addEventListener('click', async () => {
+    const jobIds = [...document.querySelectorAll('#merge-job-list input:checked')].map(i => i.value);
+    if (!jobIds.length && !mergeUploadedFiles.length) {
+      showError('Selecciona al menos un .md o un trabajo OCR.');
+      return;
+    }
+    hideError();
+    const form = new FormData();
+    form.append('job_ids', jobIds.join(','));
+    mergeUploadedFiles.forEach(f => form.append('files', f));
+    try {
+      const res = await fetch(`${API_BASE}/md/merge`, { method: 'POST', headers: apiHeaders(), body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Error al unir');
+      lastMergeMarkdown = data.markdown || '';
+      const prev = document.getElementById('merge-preview');
+      prev.style.display = 'block';
+      prev.textContent = lastMergeMarkdown.slice(0, 8000) + (lastMergeMarkdown.length > 8000 ? '\n\n…' : '');
+      document.getElementById('merge-result-actions').style.display = 'block';
+      const keyQ = getApiKey() ? '?key=' + encodeURIComponent(getApiKey()) : '';
+      document.getElementById('btn-merge-download').onclick = () => {
+        window.open(`${API_BASE}${data.download_url}${keyQ}`, '_blank');
+      };
+      document.getElementById('btn-merge-copy').onclick = () => navigator.clipboard.writeText(lastMergeMarkdown);
+      document.getElementById('merge-file-list').textContent =
+        `✓ Unidos ${data.parts} archivos · ${data.chars} caracteres`;
+    } catch (e) {
+      showError(e.message);
+    }
+  });
+
+  function showPdfEdDownload(data) {
+    if (!data?.download_url) return;
+    document.getElementById('pdf-ed-download-actions').style.display = 'block';
+    const hint = document.getElementById('pdf-ed-dl-hint');
+    if (hint) hint.style.display = 'none';
+    const fname = data.source_filename || `${data.source_id || pdfEditorSourceId}.pdf`;
+    document.getElementById('pdf-ed-download-filename').textContent = fname;
+    document.getElementById('pdf-ed-dl-btn').onclick = () => {
+      const keyQ = getApiKey() ? '?key=' + encodeURIComponent(getApiKey()) : '';
+      window.open(`${API_BASE}${data.download_url}${keyQ}`, '_blank');
+    };
+  }
+
+  function applyPdfEditorMeta(data) {
+    pdfEditorSourceId = data.source_id;
+    document.getElementById('pdf-ed-name').textContent = data.source_filename || 'documento.pdf';
+    document.getElementById('pdf-ed-meta').textContent =
+      `${data.size_mb != null ? data.size_mb + ' MB · ' : ''}${data.total_pages} páginas`;
+    const lbl = document.getElementById('pdf-ed-pages-label');
+    if (lbl) lbl.textContent = data.total_pages;
+    loadPdfEditorThumbnail(data.source_id);
+    showPdfEdDownload(data);
+    document.getElementById('pdf-ed-status').textContent = data.detail || 'PDF listo. Puedes descargarlo.';
+  }
+
+  function loadPdfEditorThumbnail(sourceId) {
+    const img = document.getElementById('pdf-ed-thumb');
+    const ph = document.getElementById('pdf-ed-thumb-ph');
+    if (!img || !sourceId) return;
+    ph.style.display = 'block';
+    img.style.display = 'none';
+    const keyQ = getApiKey() ? '?key=' + encodeURIComponent(getApiKey()) + '&' : '?';
+    img.onload = () => { ph.style.display = 'none'; img.style.display = 'block'; };
+    img.onerror = () => { ph.textContent = 'Sin vista previa'; };
+    img.src = `${API_BASE}/ocr/source/${sourceId}/preview${keyQ}page=1&t=${Date.now()}`;
+  }
+
+  function updatePdfEdPageModeHint() {
+    const mode = document.querySelector('input[name="pdf-ed-page-mode"]:checked')?.value || 'remove';
+    const hint = document.getElementById('pdf-ed-page-hint');
+    if (!hint) return;
+    hint.innerHTML = mode === 'keep'
+      ? 'Páginas a <strong>conservar</strong> (solo estas quedan).'
+      : 'Páginas a <strong>excluir</strong> del PDF.';
+  }
+
+  async function registerPdfForEditor(file) {
+    pdfEditorSourceId = null;
+    hideError();
+    document.getElementById('pdf-ed-name').textContent = file.name;
+    document.getElementById('pdf-ed-meta').textContent = formatBytes(file.size);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${API_BASE}/ocr/source`, { method: 'POST', headers: apiHeaders(), body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo subir el PDF');
+      }
+      const data = await res.json();
+      applyPdfEditorMeta(data);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  document.getElementById('pdf-ed-file-input').addEventListener('change', () => {
+    const f = document.getElementById('pdf-ed-file-input').files[0];
+    if (f) registerPdfForEditor(f);
+  });
+
+  document.querySelectorAll('input[name="pdf-ed-page-mode"]').forEach(el => {
+    el.addEventListener('change', updatePdfEdPageModeHint);
+  });
+  updatePdfEdPageModeHint();
+
+  document.getElementById('pdf-ed-trim').addEventListener('click', async () => {
+    if (!pdfEditorSourceId) { showError('Sube un PDF primero.'); return; }
+    const spec = document.getElementById('pdf-ed-page-spec').value.trim();
+    if (!spec) { showError('Indica páginas (ej. 1,3,5-10).'); return; }
+    const mode = document.querySelector('input[name="pdf-ed-page-mode"]:checked')?.value || 'remove';
+    const btn = document.getElementById('pdf-ed-trim');
+    btn.disabled = true;
+    hideError();
+    try {
+      const form = new FormData();
+      form.append('replace_source', 'true');
+      if (mode === 'keep') form.append('keep_pages', spec);
+      else form.append('remove_pages', spec);
+      const res = await fetch(`${API_BASE}/ocr/source/${pdfEditorSourceId}/extract`, {
+        method: 'POST', headers: apiHeaders(), body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al recortar');
+      applyPdfEditorMeta(data);
+      document.getElementById('pdf-ed-page-spec').value = '';
+      if (data.detail) showWarnEdit(data.detail);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('pdf-ed-compress').addEventListener('click', async () => {
+    if (!pdfEditorSourceId) { showError('Sube un PDF primero.'); return; }
+    const quality = document.getElementById('pdf-ed-compress-quality').value;
+    const btn = document.getElementById('pdf-ed-compress');
+    btn.disabled = true;
+    hideError();
+    try {
+      const form = new FormData();
+      form.append('replace_source', 'true');
+      form.append('quality', quality);
+      const res = await fetch(`${API_BASE}/ocr/source/${pdfEditorSourceId}/compress`, {
+        method: 'POST', headers: apiHeaders(), body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al comprimir');
+      applyPdfEditorMeta(data);
+      if (data.detail) showWarnEdit(data.detail);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('pdf-ed-merge-files').addEventListener('change', e => {
+    pdfEditorMergeFiles = Array.from(e.target.files || []);
+    const el = document.getElementById('pdf-ed-merge-list');
+    if (!pdfEditorMergeFiles.length) { el.textContent = ''; return; }
+    el.textContent = 'Añadidos: ' + pdfEditorMergeFiles.map(f => f.name).join(', ');
+  });
+
+  document.getElementById('pdf-ed-merge-btn').addEventListener('click', async () => {
+    const extraCount = pdfEditorMergeFiles.length;
+    if (pdfEditorSourceId) {
+      if (extraCount < 1) {
+        showError('Añade al menos un PDF más para unir con el actual.');
+        return;
+      }
+    } else if (extraCount < 2) {
+      showError('Sube al menos 2 archivos PDF (o uno principal + otros).');
+      return;
+    }
+    const btn = document.getElementById('pdf-ed-merge-btn');
+    btn.disabled = true;
+    hideError();
+    try {
+      const form = new FormData();
+      if (pdfEditorSourceId) form.append('base_source_id', pdfEditorSourceId);
+      pdfEditorMergeFiles.forEach(f => form.append('files', f));
+      const res = await fetch(`${API_BASE}/pdf/merge`, { method: 'POST', headers: apiHeaders(), body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al unir');
+      applyPdfEditorMeta(data);
+      pdfEditorMergeFiles = [];
+      document.getElementById('pdf-ed-merge-files').value = '';
+      document.getElementById('pdf-ed-merge-list').textContent = '';
+      if (data.detail) showWarnEdit(data.detail);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  async function removePdfFromServer() {
+    if (!pdfSourceId) {
+      clearFile();
+      return;
+    }
+    if (!confirm('¿Quitar el PDF del servidor y cancelar trabajos pendientes de este archivo?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/ocr/source/${pdfSourceId}`, {
+        method: 'DELETE',
+        headers: apiHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'No se pudo quitar el PDF');
+      showWarnWs(data.cancelled_jobs ? `PDF eliminado. ${data.cancelled_jobs} trabajo(s) cancelado(s).` : 'PDF eliminado del servidor.');
+      clearFile();
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function buildQueueItemHtml(job, badgeText, extraClass) {
+    const pages = job.pages_total ? `${job.pages_done || 0}/${job.pages_total} pág.` : '';
+    const part = job.page_from && job.page_to ? ` · ${job.page_from}-${job.page_to}` : '';
+    return `
+      <div class="queue-item ${extraClass}">
+        <div class="q-head">
+          <div class="q-title">${escapeHtml(job.source_filename || job.job_id)}</div>
+          <span class="q-badge">${badgeText}</span>
+        </div>
+        <div class="q-meta">${job.progress || 0}% · ${pages}${part}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${escapeHtml(job.detail || '')}</div>
+        <div class="queue-actions"></div>
+      </div>`;
+  }
+
+  function attachQueueActions(container, job, opts = {}) {
+    const actions = container.querySelector('.queue-actions');
+    if (!actions) return;
+    const { isRunning, queueIndex = 0, queueLength = 1 } = opts;
+
+    if ((job.status === 'processing' || isRunning) && job.status !== 'paused') {
+      const btnPause = document.createElement('button');
+      btnPause.textContent = 'Pausar y pasar al siguiente';
+      btnPause.className = 'primary';
+      btnPause.title = 'Detiene este trabajo y deja que el #1 en cola empiece';
+      btnPause.onclick = () => jobPause(job.job_id, true);
+      actions.appendChild(btnPause);
+    }
+    if (job.status === 'paused' && isRunning) {
+      const btnWait = document.createElement('button');
+      btnWait.textContent = 'Pausando…';
+      btnWait.disabled = true;
+      btnWait.style.opacity = '0.55';
+      actions.appendChild(btnWait);
+    }
+    if (job.status === 'paused' && !isRunning) {
+      const btnResume = document.createElement('button');
+      btnResume.textContent = 'Reanudar';
+      btnResume.className = 'primary';
+      btnResume.onclick = () => jobAction(job.job_id, 'resume');
+      actions.appendChild(btnResume);
+    }
+    if (!isRunning && (job.status === 'queued' || job.status === 'paused')) {
+      if (queueIndex > 0) {
+        const btnUp = document.createElement('button');
+        btnUp.textContent = '↑ Subir';
+        btnUp.onclick = () => jobQueueMove(job.job_id, 'up');
+        actions.appendChild(btnUp);
+      }
+      if (queueIndex < queueLength - 1) {
+        const btnDown = document.createElement('button');
+        btnDown.textContent = '↓ Bajar';
+        btnDown.onclick = () => jobQueueMove(job.job_id, 'down');
+        actions.appendChild(btnDown);
+      }
+      if (queueIndex > 0) {
+        const btnPri = document.createElement('button');
+        btnPri.textContent = 'Priorizar (#1)';
+        btnPri.className = 'primary';
+        btnPri.onclick = () => jobPrioritize(job.job_id);
+        actions.appendChild(btnPri);
+      } else if (queueLength > 1) {
+        const btnPri = document.createElement('button');
+        btnPri.textContent = 'Es el siguiente';
+        btnPri.disabled = true;
+        btnPri.style.opacity = '0.55';
+        actions.appendChild(btnPri);
+      }
+    }
+    if (['queued', 'processing', 'paused'].includes(job.status)) {
+      const btnCancel = document.createElement('button');
+      btnCancel.textContent = job.status === 'queued' ? 'Quitar de cola' : 'Cancelar';
+      btnCancel.className = 'danger';
+      btnCancel.onclick = () => jobAction(job.job_id, 'cancel');
+      actions.appendChild(btnCancel);
+    }
+  }
+
+  function getPdfProcessingMode() {
+    const checked = document.querySelector('input[name="pdf-process-mode"]:checked');
+    return checked ? checked.value : 'ranges';
+  }
+
+  function updateProcessModeUi() {
+    pdfProcessingMode = getPdfProcessingMode();
+    const isRanges = pdfProcessingMode === 'ranges';
+    document.getElementById('mode-option-ranges').classList.toggle('active', isRanges);
+    document.getElementById('mode-option-full').classList.toggle('active', !isRanges);
+    document.getElementById('range-panel').classList.toggle('show', isRanges);
+    const btn = document.getElementById('btn-process-range');
+    btn.innerHTML = isRanges
+      ? 'Iniciar OCR del rango <span class="arrow">→</span>'
+      : `Procesar PDF completo (${pdfTotalPages || '…'} pág.) <span class="arrow">→</span>`;
+  }
+
+  document.querySelectorAll('input[name="pdf-process-mode"]').forEach(input => {
+    input.addEventListener('change', updateProcessModeUi);
+  });
+
+  function wireBatchDownloadButtons(batch) {
+    const dl = document.getElementById('batch-downloads');
+    if (!batch || !(batch.parts_completed > 0)) {
+      dl.style.display = 'none';
+      return;
+    }
+    dl.style.display = 'flex';
+    const keyQ = getApiKey() ? '?key=' + encodeURIComponent(getApiKey()) : '';
+    const btnFull = document.getElementById('btn-dl-full');
+    const btnMerged = document.getElementById('btn-dl-merged');
+    const btnZip = document.getElementById('btn-dl-zip');
+
+    if (batch.full_document_ready) {
+      btnFull.style.display = '';
+      btnFull.onclick = () => {
+        window.open(`${API_BASE}/download/batch/${pdfBatchId}/full.md${keyQ}`, '_blank');
+      };
+    } else {
+      btnFull.style.display = 'none';
+    }
+
+    btnMerged.style.display = batch.parts_completed > 1 ? '' : 'none';
+    btnMerged.onclick = () => {
+      window.open(`${API_BASE}/download/batch/${pdfBatchId}/merged.md${keyQ}`, '_blank');
+    };
+    btnZip.onclick = () => {
+      window.open(`${API_BASE}/download/batch/${pdfBatchId}/zip${keyQ}`, '_blank');
+    };
+  }
+
+  function wireResultBatchDownloads(data, apiKey) {
+    const keyQ = apiKey ? '?key=' + encodeURIComponent(apiKey) : '';
+    const batchDl = data.batch_downloads || {};
+    const dlSection = document.getElementById('batch-downloads');
+    if (!pdfBatchId || (!data.full_document && !batchDl.full_md)) return;
+    dlSection.style.display = 'flex';
+    const btnFull = document.getElementById('btn-dl-full');
+    btnFull.style.display = '';
+    btnFull.onclick = () => {
+      const url = batchDl.full_md || currentDownloads.md || `/download/${data.job_id}/md`;
+      window.open(`${API_BASE}${url}${keyQ}`, '_blank');
+    };
+  }
+
+  function pdfPageNumberForResultIndex(pageIndex) {
+    const page = currentPages[pageIndex];
+    if (!page) return Math.max(1, pageIndex + 1);
+    return (page.index != null ? page.index : pageIndex) + 1;
+  }
+
+  function updateSourcePageNav(pageIndex, pdfPageNum) {
+    const indicator = document.getElementById('paddle-page-indicator');
+    const prevBtn = document.getElementById('paddle-prev-page');
+    const nextBtn = document.getElementById('paddle-next-page');
+    const totalPdf = pdfTotalPages || currentPages.length || 1;
+    if (indicator) indicator.textContent = `${pdfPageNum} / ${totalPdf}`;
+    if (prevBtn) prevBtn.disabled = pageIndex <= 0;
+    if (nextBtn) nextBtn.disabled = pageIndex >= currentPages.length - 1;
+  }
+
+  function loadSourcePdfPage(pdfPageNum, pageIndex = null) {
+    if (!pdfSourceId) return;
+    const pageNum = Math.max(1, parseInt(pdfPageNum, 10) || 1);
+    const keyQ = getApiKey() ? `?key=${encodeURIComponent(getApiKey())}&` : '?';
+    const url = `${API_BASE}/ocr/source/${pdfSourceId}/preview${keyQ}page=${pageNum}&scale=2&t=${Date.now()}`;
+    const ph = document.getElementById('pdf-thumb-placeholder');
+    const thumb = document.getElementById('pdf-thumb');
+    const paddleImg = document.getElementById('paddle-page-img');
+    const target = (paddleLayoutActive && paddleImg) ? paddleImg : thumb;
+    if (!target) return;
+    if (ph && target === thumb) {
+      ph.style.display = 'block';
+      ph.textContent = 'Cargando página…';
+      thumb.style.display = 'none';
+    }
+    target.onload = () => {
+      if (ph) ph.style.display = 'none';
+      if (!paddleLayoutActive || target === paddleImg) target.style.display = 'block';
+      else if (thumb) thumb.style.display = 'block';
+    };
+    target.onerror = () => {
+      if (ph) {
+        ph.style.display = 'block';
+        ph.textContent = 'Sin vista previa';
+      }
+    };
+    target.src = url;
+    if (pageIndex != null) updateSourcePageNav(pageIndex, pageNum);
+  }
+
+  function syncSourcePdfWithResultPage(pageIndex) {
+    const pdfPage = pdfPageNumberForResultIndex(pageIndex);
+    loadSourcePdfPage(pdfPage, pageIndex);
+  }
+
+  function loadPdfThumbnail(sourceId) {
+    if (!sourceId) return;
+    loadSourcePdfPage(1, 0);
+  }
+
+  function applyPdfWorkspaceMeta(data) {
+    if (data.source_id) pdfSourceId = data.source_id;
+    if (data.batch_id) pdfBatchId = data.batch_id;
+    if (data.total_pages != null) pdfTotalPages = data.total_pages;
+    document.getElementById('pdf-pages-label').textContent = pdfTotalPages;
+    document.getElementById('page-from').max = pdfTotalPages;
+    document.getElementById('page-to').max = pdfTotalPages;
+    document.getElementById('page-from').value = 1;
+    const firstEnd = Math.min(50, pdfTotalPages);
+    document.getElementById('page-to').value = firstEnd;
+    const presets = document.getElementById('range-presets');
+    presets.innerHTML = '';
+    (data.suggested_ranges || batchesSuggestRanges(pdfTotalPages)).forEach((r, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = `${r.page_from}–${r.page_to}`;
+      if (i === 0) b.classList.add('active');
+      b.onclick = () => selectRangePreset(r.page_from, r.page_to, b);
+      presets.appendChild(b);
+    });
+    if (pdfSourceId) loadPdfThumbnail(pdfSourceId);
+    document.getElementById('process-mode-block').style.display = '';
+    updateProcessModeUi();
+    if (data.size_mb != null) {
+      document.getElementById('file-size').textContent = `${data.size_mb} MB · ${pdfTotalPages} pág.`;
+    }
+  }
+
+  function batchesSuggestRanges(total) {
+    const ranges = [];
+    let start = 1;
+    while (start <= total) {
+      const end = Math.min(total, start + 49);
+      ranges.push({ page_from: start, page_to: end });
+      start = end + 1;
+    }
+    return ranges;
+  }
+
+  function applyUploadLimit(mb) {
+    MAX_MB = mb;
+    document.getElementById('limit-badge').textContent = `Máx. ${MAX_MB} MB`;
+    const hint = document.getElementById('limit-hint');
+    if (hint) hint.textContent = `PDF, PNG, JPG, TIFF, BMP, WEBP · Máx. ${MAX_MB} MB`;
+  }
+
+  function applyVisionProviderOptions(data) {
+    const tesseractOnly = !!data.tesseract_only;
+    const labels = data.vision_labels || {};
+    const providers = data.vision_providers || [];
+    const enabled = !tesseractOnly && !!data.vision_enabled;
+    ['vision-provider', 'vision-provider-classic'].forEach(id => {
+      const sel = document.getElementById(id);
+      const wrap = sel ? sel.closest('div') : null;
+      if (wrap) wrap.style.display = tesseractOnly ? 'none' : '';
+      if (!sel) return;
+      const current = sel.value || 'auto';
+      sel.innerHTML = '';
+      const autoOpt = document.createElement('option');
+      autoOpt.value = 'auto';
+      autoOpt.textContent = labels.auto || 'Automático (mejor disponible)';
+      sel.appendChild(autoOpt);
+      providers.forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = labels[key] || key;
+        sel.appendChild(opt);
+      });
+      if ([...sel.options].some(o => o.value === current)) sel.value = current;
+      else {
+        const preferred = (data.vision_default && data.vision_default !== 'auto')
+          ? data.vision_default
+          : (providers.length === 1 ? providers[0] : 'auto');
+        if ([...sel.options].some(o => o.value === preferred)) sel.value = preferred;
+      }
+      sel.disabled = !enabled;
+    });
+    const hint = document.getElementById('vision-provider-hint');
+    if (hint) {
+      if (tesseractOnly) {
+        const engines = data.local_engines || ['tesseract'];
+        const motorLabel = engines.includes('paddle')
+          ? 'Tesseract + PaddleOCR'
+          : 'Tesseract';
+        hint.textContent = `Motor: ${motorLabel} local (sin IA). Sellos y firmas van en sección aparte al final.`;
+        hint.style.display = '';
+      } else {
+      const parallel = data.vision_parallel !== false;
+      if (!enabled) {
+        hint.textContent = 'Sin claves IA en .env — solo OCR local (Tesseract).';
+      } else if (parallel) {
+        hint.textContent =
+          `Paralelo: ${providers.map(p => (labels[p] || p).split(' (')[0]).join(', ') || 'ninguno'} a la vez por página. «Automático» elige el mejor.`;
+      } else {
+        hint.textContent =
+          `Disponibles: ${providers.map(p => (labels[p] || p).split(' (')[0]).join(', ') || 'ninguno'} (modo secuencial).`;
+      }
+      }
+    }
+  }
 
   fetch(`${API_BASE}/config`)
     .then(r => r.json())
     .then(data => {
-      MAX_MB = data.max_upload_mb;
-      document.getElementById('limit-badge').textContent = `⚠ Límite: ${MAX_MB} MB`;
+      applyUploadLimit(data.max_upload_mb);
+      applyVisionProviderOptions(data);
+      if (data.heavy_async_mb) HEAVY_ASYNC_MB = data.heavy_async_mb;
+      if (data.heavy_async_pages) HEAVY_ASYNC_PAGES = data.heavy_async_pages;
+      apiKeyRequired = !!data.api_key_required;
+      if (!apiKeyRequired) {
+        keyWrap.classList.add('hidden');
+        clearSavedApiKey();
+      } else {
+        keyWrap.classList.remove('hidden');
+        apiKeyInput.placeholder = 'Misma que OCR_API_KEY en .env';
+        verifyApiKey();
+      }
     })
     .catch(() => {});
+  refreshQueueAndHistory();
+  startQueuePolling();
+  showView('upload');
+
+  (async function resumeActiveOcrJobIfAny() {
+    let jobId = null;
+    try { jobId = sessionStorage.getItem('ocr_active_job'); } catch (_) {}
+    if (!jobId) return;
+    try {
+      const res = await fetch(`${API_BASE}/ocr/status/${jobId}`, { headers: apiHeaders() });
+      if (!res.ok) {
+        sessionStorage.removeItem('ocr_active_job');
+        return;
+      }
+      const data = await res.json();
+      if (data.status === 'completed' && data.text !== undefined) {
+        sessionStorage.removeItem('ocr_active_job');
+        showView('workspace');
+        showResult(data, getApiKey());
+        return;
+      }
+      if (['queued', 'processing', 'paused'].includes(data.status)) {
+        activeJobId = jobId;
+        showView('workspace');
+        document.getElementById('progress-section').classList.add('show');
+        showProgress(10, 'Retomando trabajo…', data.detail || 'OCR en curso');
+        startQueuePolling();
+        pollOcrJob(jobId, getApiKey()).then(result => {
+          sessionStorage.removeItem('ocr_active_job');
+          showResult(result, getApiKey());
+        }).catch(() => {});
+      } else {
+        sessionStorage.removeItem('ocr_active_job');
+      }
+    } catch (_) {}
+  })();
 
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
@@ -694,30 +3021,258 @@
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) setFile(fileInput.files[0]);
   });
+  document.getElementById('btn-pick-file').addEventListener('click', () => fileInput.click());
+
+  function selectRangePreset(from, to, btn) {
+    document.getElementById('page-from').value = from;
+    document.getElementById('page-to').value = to;
+    document.querySelectorAll('#range-presets button').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+
+  async function registerPdfSource(file) {
+    pdfSourceId = null;
+    pdfBatchId = null;
+    pdfTotalPages = 0;
+    showView('workspace');
+    resetWorkspaceForPdf();
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = formatBytes(file.size);
+    pdfRegistering = true;
+    showProgress(5, 'Subiendo PDF…', 'Preparando rangos y vista previa…');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${API_BASE}/ocr/source`, { method: 'POST', headers: apiHeaders(), body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo registrar el PDF');
+      }
+      const data = await res.json();
+      applyPdfWorkspaceMeta(data);
+      showWarnWs(
+        `${pdfTotalPages} páginas · Elige «Por rangos» o «PDF completo» y pulsa Iniciar OCR.`
+      );
+      hideProgress();
+      refreshBatchStatus();
+      startQueuePolling();
+    } catch (e) {
+      hideProgress();
+      showView('upload');
+      showError(e.message);
+    } finally {
+      pdfRegistering = false;
+    }
+  }
+
+  async function refreshBatchStatus() {
+    if (!pdfBatchId) return;
+    try {
+      const res = await fetch(`${API_BASE}/ocr/batch/${pdfBatchId}`, { headers: apiHeaders() });
+      if (!res.ok) return;
+      const batch = await res.json();
+      const el = document.getElementById('batch-parts');
+      const parts = batch.parts || [];
+      if (!parts.length) {
+        el.innerHTML = '<p style="color:var(--muted);margin:0;">Aún no hay rangos procesados.</p>';
+      } else {
+        const keyQ = getApiKey() ? '?key=' + encodeURIComponent(getApiKey()) : '';
+        el.innerHTML = parts.map(p => {
+          const dl = p.status === 'completed' && p.job_id
+            ? `<a href="${API_BASE}/download/${p.job_id}/md${keyQ}" target="_blank" rel="noopener" title="Descargar MD de este rango">.md</a>`
+            : '';
+          return `<div class="batch-part-row">
+            <span>${p.label || ('páginas ' + p.page_from + '-' + p.page_to)}</span>
+            <span>${statusLabel(p.status)} ${p.progress ? p.progress + '%' : ''} ${dl}</span>
+          </div>`;
+        }).join('');
+      }
+      wireBatchDownloadButtons(batch);
+      if (batch.full_document_ready) {
+        showWarnWs('PDF completo listo. Descarga el MD completo o el ZIP.');
+      } else if (batch.merge_ready) {
+        showWarnWs('Todas las partes listas. Descarga el MD unificado o el ZIP.');
+      } else if (batch.parts_completed > 0) {
+        showWarnWs(
+          `${batch.parts_completed}/${batch.parts_total} partes listas. Puedes descargar un MD parcial o seguir.`
+        );
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function startPdfOcrJob() {
+    if (selectedFile && !selectedFile.name.toLowerCase().endsWith('.pdf')) {
+      return processFile();
+    }
+    if (getPdfProcessingMode() === 'full') {
+      return processFullPdf();
+    }
+    return processRange();
+  }
+
+  async function processFullPdf() {
+    if (!pdfSourceId || !pdfBatchId) {
+      showError('Primero sube un PDF y espera a que termine de registrar.');
+      return;
+    }
+    const { lang, mode, vision_provider } = getOcrOptions();
+    hideError();
+    if (pdfRegistering) {
+      showError('Espera a que termine de subir el PDF.');
+      return;
+    }
+    document.getElementById('btn-process-range').disabled = true;
+    try {
+      const params = new URLSearchParams({
+        source_id: pdfSourceId,
+        batch_id: pdfBatchId,
+        lang,
+        mode,
+        vision_provider,
+      });
+      const res = await fetch(`${API_BASE}/ocr/full?${params}`, { method: 'POST', headers: apiHeaders() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al encolar el PDF completo');
+      activeJobId = data.job_id;
+      try { sessionStorage.setItem('ocr_active_job', data.job_id); } catch (_) {}
+      document.getElementById('progress-section').classList.add('show');
+      showProgress(8, 'En cola…', `PDF completo (${pdfTotalPages} pág.) encolado…`);
+      refreshQueueAndHistory();
+      refreshBatchStatus();
+      pollOcrJob(data.job_id, getApiKey()).then(result => {
+        try { sessionStorage.removeItem('ocr_active_job'); } catch (_) {}
+        showResult(result, getApiKey());
+        wireResultBatchDownloads(result, getApiKey());
+        refreshBatchStatus();
+      }).catch(err => {
+        if (!String(err.message).includes('cancelado')) showError(err.message);
+        refreshBatchStatus();
+      });
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      document.getElementById('btn-process-range').disabled = false;
+    }
+  }
+
+  async function processRange() {
+    if (!pdfSourceId || !pdfBatchId) {
+      showError('Primero sube un PDF y espera a que termine de registrar.');
+      return;
+    }
+    const pf = parseInt(document.getElementById('page-from').value, 10);
+    const pt = parseInt(document.getElementById('page-to').value, 10);
+    if (!pf || !pt || pf > pt) {
+      showError('Rango de páginas inválido.');
+      return;
+    }
+    const { lang, mode, vision_provider } = getOcrOptions();
+    hideError();
+    if (pdfRegistering) {
+      showError('Espera a que termine de subir el PDF.');
+      return;
+    }
+    document.getElementById('btn-process-range').disabled = true;
+    try {
+      const params = new URLSearchParams({
+        source_id: pdfSourceId,
+        batch_id: pdfBatchId,
+        page_from: String(pf),
+        page_to: String(pt),
+        lang,
+        mode,
+        vision_provider,
+      });
+      const res = await fetch(`${API_BASE}/ocr/range?${params}`, { method: 'POST', headers: apiHeaders() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al encolar el rango');
+      activeJobId = data.job_id;
+      try { sessionStorage.setItem('ocr_active_job', data.job_id); } catch (_) {}
+      document.getElementById('progress-section').classList.add('show');
+      showProgress(8, 'En cola…', `Rango ${pf}-${pt} encolado. Iniciará en breve…`);
+      refreshQueueAndHistory();
+      refreshBatchStatus();
+      pollOcrJob(data.job_id, getApiKey()).then(result => {
+        try { sessionStorage.removeItem('ocr_active_job'); } catch (_) {}
+        showResult(result, getApiKey());
+        refreshBatchStatus();
+      }).catch(err => {
+        if (!String(err.message).includes('cancelado')) showError(err.message);
+        refreshBatchStatus();
+      });
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      document.getElementById('btn-process-range').disabled = false;
+    }
+  }
+
+  document.getElementById('btn-process-range').addEventListener('click', startPdfOcrJob);
+
+  document.getElementById('paddle-prev-page')?.addEventListener('click', () => {
+    if (currentPageIndex > 0) setResultView('pages', currentPageIndex - 1);
+  });
+  document.getElementById('paddle-next-page')?.addEventListener('click', () => {
+    if (currentPageIndex < currentPages.length - 1) setResultView('pages', currentPageIndex + 1);
+  });
+  document.querySelectorAll('.paddle-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => setPaddleTab(btn.dataset.paddleTab || 'analysis'));
+  });
 
   function setFile(f) {
     selectedFile = f;
+    pdfSourceId = null;
+    pdfBatchId = null;
+    hideError();
+    hideWarn();
     const tooBig = f.size > MAX_MB * 1024 * 1024;
-
-    document.getElementById('file-name').textContent = f.name;
-    document.getElementById('file-name').className = 'file-info-name' + (tooBig ? ' too-big' : '');
-    document.getElementById('file-size').textContent = formatBytes(f.size) + (tooBig ? ` — excede el límite de ${MAX_MB} MB` : '');
-    document.getElementById('file-info').className = 'file-info show' + (tooBig ? ' too-big' : '');
-    dropZone.classList.toggle('file-too-big', tooBig);
+    const isPdf = f.name.toLowerCase().endsWith('.pdf');
 
     if (tooBig) {
-      showWarn(`⚠ El archivo pesa ${formatBytes(f.size)} y supera el límite de ${MAX_MB} MB.\nPor favor comprime el PDF en ilovepdf.com antes de subirlo.`);
-      document.getElementById('btn-process').disabled = true;
-    } else {
-      hideWarn();
-      hideError();
-      document.getElementById('btn-process').disabled = false;
+      showView('upload');
+      showError(`El archivo pesa ${formatBytes(f.size)} y supera el límite de ${MAX_MB} MB. Comprímelo antes de subir.`);
+      return;
     }
+    if (isPdf) {
+      registerPdfSource(f);
+    } else {
+      showView('workspace');
+      document.getElementById('process-mode-block').style.display = 'none';
+      document.getElementById('range-panel').classList.remove('show');
+      document.getElementById('file-name').textContent = f.name;
+      document.getElementById('file-size').textContent = formatBytes(f.size);
+      document.getElementById('pdf-thumb-placeholder').textContent = '🖼 Imagen';
+      document.getElementById('pdf-thumb').style.display = 'none';
+      document.getElementById('btn-process-range').style.display = '';
+      document.getElementById('btn-process-range').innerHTML = 'Procesar imagen <span class="arrow">→</span>';
+    }
+  }
+
+  function resetWorkspaceForPdf() {
+    document.getElementById('process-mode-block').style.display = '';
+    document.getElementById('range-panel').classList.add('show');
+    document.getElementById('btn-process-range').style.display = '';
+    const rangesRadio = document.querySelector('input[name="pdf-process-mode"][value="ranges"]');
+    if (rangesRadio) rangesRadio.checked = true;
+    updateProcessModeUi();
   }
 
   function clearFile() {
     selectedFile = null;
+    pdfSourceId = null;
+    pdfBatchId = null;
+    pdfTotalPages = 0;
+    togglePaddleLayout(false);
+    showView('upload');
+    showHomeModes();
+    resetWorkspaceForPdf();
+    document.getElementById('batch-downloads').style.display = 'none';
     fileInput.value = '';
+    pdfEditorSourceId = null;
+    const thumb = document.getElementById('pdf-thumb');
+    if (thumb) { thumb.src = ''; thumb.style.display = 'none'; }
+    const ph = document.getElementById('pdf-thumb-placeholder');
+    if (ph) { ph.style.display = 'block'; ph.textContent = 'Generando vista previa…'; }
     currentDownloads = {};
     currentDownloadNames = {};
     currentMarkdown = '';
@@ -726,7 +3281,6 @@
     currentView = 'full';
     currentPageIndex = 0;
     currentTotalPages = 0;
-    document.getElementById('file-info').className = 'file-info';
     document.getElementById('btn-process').disabled = true;
     document.getElementById('progress-section').classList.remove('show');
     document.getElementById('method-section').style.display = 'none';
@@ -743,9 +3297,21 @@
     document.getElementById('toolbar-chips').innerHTML = '';
     document.getElementById('btn-copy').style.display = 'none';
     document.getElementById('btn-new').style.display = 'none';
-    dropZone.classList.remove('file-too-big');
+    if (dropZone) dropZone.classList.remove('drag-over');
     hideError();
     hideWarn();
+  }
+
+  function getOcrOptions() {
+    const classic = !document.getElementById('view-classic').classList.contains('hidden');
+    const langEl = document.getElementById(classic ? 'lang-classic' : 'lang');
+    const modeEl = document.getElementById(classic ? 'ocr-mode-classic' : 'ocr-mode');
+    const visionEl = document.getElementById(classic ? 'vision-provider-classic' : 'vision-provider');
+    return {
+      lang: langEl ? langEl.value : 'spa',
+      mode: modeEl ? modeEl.value : 'balanced',
+      vision_provider: visionEl ? visionEl.value : 'auto',
+    };
   }
 
   function formatBytes(b) {
@@ -945,11 +3511,198 @@
     document.getElementById('result-empty').style.display = 'none';
   }
 
+  function hasPaddleLayout(pages) {
+    return Array.isArray(pages) && pages.some(
+      page => page && Array.isArray(page.blocks) && page.blocks.length > 0
+    );
+  }
+
+  function setPaddleTab(tab) {
+    paddleTab = tab;
+    document.querySelectorAll('.paddle-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.paddleTab === tab);
+    });
+    document.getElementById('paddle-tab-analysis').classList.toggle('show', tab === 'analysis');
+    document.getElementById('paddle-tab-markdown').classList.toggle('show', tab === 'markdown');
+    document.getElementById('paddle-tab-json').classList.toggle('show', tab === 'json');
+  }
+
+  function togglePaddleLayout(enabled) {
+    paddleLayoutActive = !!enabled;
+    const main = document.getElementById('workspace-main');
+    const layout = document.getElementById('paddle-parse-layout');
+    if (main) main.classList.toggle('has-paddle-layout', paddleLayoutActive);
+    if (layout) layout.classList.toggle('show', paddleLayoutActive);
+    if (!paddleLayoutActive) {
+      paddleSelectedBlockId = null;
+      paddleHoveredBlockId = null;
+    }
+  }
+
+  function applyPaddleBlockHighlight() {
+    const selectors = '.paddle-block-card, .paddle-overlay-rect, .paddle-markdown-block';
+    document.querySelectorAll(selectors).forEach(el => {
+      const id = String(el.dataset.blockId);
+      el.classList.toggle('active', paddleSelectedBlockId != null && id === String(paddleSelectedBlockId));
+      el.classList.toggle('hover', paddleHoveredBlockId != null && id === String(paddleHoveredBlockId));
+    });
+  }
+
+  function clearPaddleBlockHover() {
+    paddleHoveredBlockId = null;
+    applyPaddleBlockHighlight();
+  }
+
+  function paddleBlockHoverSource(el) {
+    if (el.classList.contains('paddle-overlay-rect')) return 'pdf';
+    if (el.classList.contains('paddle-markdown-block')) return 'markdown';
+    return 'list';
+  }
+
+  function bindPaddleBlockHover(el, blockId) {
+    if (!el || blockId == null) return;
+    el.addEventListener('mouseenter', () => highlightPaddleBlock(blockId, { hover: true, source: paddleBlockHoverSource(el) }));
+    el.addEventListener('mouseleave', () => clearPaddleBlockHover());
+  }
+
+  function highlightPaddleBlock(blockId, options = {}) {
+    const { hover = false, source = null } = options;
+    if (hover) {
+      paddleHoveredBlockId = blockId;
+    } else {
+      paddleSelectedBlockId = blockId;
+      paddleHoveredBlockId = null;
+    }
+    applyPaddleBlockHighlight();
+    if (!hover && blockId != null && source !== 'list') {
+      const card = document.querySelector(`.paddle-block-card[data-block-id="${blockId}"]`);
+      if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  function drawPaddleOverlay(blocks, imageSize, displayW, displayH) {
+    const svg = document.getElementById('paddle-overlay-svg');
+    if (!svg) return;
+    const [srcW, srcH] = imageSize || [displayW, displayH];
+    const scaleX = displayW / (srcW || displayW || 1);
+    const scaleY = displayH / (srcH || displayH || 1);
+    svg.setAttribute('viewBox', `0 0 ${displayW} ${displayH}`);
+    svg.innerHTML = '';
+    (blocks || []).forEach(block => {
+      const box = block.box || [];
+      if (box.length < 4) return;
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', String(box[0] * scaleX));
+      rect.setAttribute('y', String(box[1] * scaleY));
+      rect.setAttribute('width', String(Math.max(1, (box[2] - box[0]) * scaleX)));
+      rect.setAttribute('height', String(Math.max(1, (box[3] - box[1]) * scaleY)));
+      rect.setAttribute('class', 'paddle-overlay-rect');
+      rect.dataset.blockId = String(block.id);
+      bindPaddleBlockHover(rect, block.id);
+      rect.addEventListener('click', () => highlightPaddleBlock(block.id, { source: 'pdf' }));
+      svg.appendChild(rect);
+    });
+    applyPaddleBlockHighlight();
+  }
+
+  function renderPaddleBlocksList(blocks) {
+    const list = document.getElementById('paddle-blocks-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!blocks || !blocks.length) {
+      list.innerHTML = '<p style="font-size:13px;color:var(--muted);">Sin bloques detectados en esta página.</p>';
+      return;
+    }
+    blocks.forEach(block => {
+      const card = document.createElement('div');
+      card.className = 'paddle-block-card';
+      card.dataset.blockId = String(block.id);
+      card.innerHTML = `
+        <div class="paddle-block-head">
+          <span class="paddle-block-label">${escapeHtml(block.label || 'text')}</span>
+          <span class="paddle-block-score">${block.score != null ? (block.score * 100).toFixed(1) + '%' : ''}</span>
+        </div>
+        <div class="paddle-block-text">${escapeHtml(block.text || '')}</div>
+      `;
+      bindPaddleBlockHover(card, block.id);
+      card.addEventListener('click', () => highlightPaddleBlock(block.id, { source: 'list' }));
+      list.appendChild(card);
+    });
+    applyPaddleBlockHighlight();
+  }
+
+  function renderPaddleMarkdownView(blocks, pageMarkdown) {
+    const mdView = document.getElementById('paddle-markdown-view');
+    if (!mdView) return;
+    if (!blocks || !blocks.length) {
+      mdView.textContent = pageMarkdown || '';
+      return;
+    }
+    mdView.innerHTML = '';
+    blocks.forEach(block => {
+      const row = document.createElement('span');
+      row.className = 'paddle-markdown-block';
+      row.dataset.blockId = String(block.id);
+      row.textContent = block.text || '';
+      bindPaddleBlockHover(row, block.id);
+      row.addEventListener('click', () => highlightPaddleBlock(block.id, { source: 'markdown' }));
+      mdView.appendChild(row);
+      mdView.appendChild(document.createTextNode('\n'));
+    });
+    applyPaddleBlockHighlight();
+  }
+
+  function renderPaddlePage(pageIndex) {
+    if (!paddleLayoutActive || !currentPages.length) return;
+    const page = currentPages[pageIndex];
+    if (!page) return;
+    paddleSelectedBlockId = null;
+    paddleHoveredBlockId = null;
+    const blocks = page.blocks || [];
+    const imageSize = page.image_size || [];
+    const pdfPage = pdfPageNumberForResultIndex(pageIndex);
+    updateSourcePageNav(pageIndex, pdfPage);
+
+    renderPaddleBlocksList(blocks);
+    renderPaddleMarkdownView(blocks, page.markdown || '');
+    const jsonView = document.getElementById('paddle-json-view');
+    if (jsonView) jsonView.textContent = JSON.stringify(page, null, 2);
+
+    const img = document.getElementById('paddle-page-img');
+    const svg = document.getElementById('paddle-overlay-svg');
+    if (!img || !pdfSourceId) {
+      if (svg) svg.innerHTML = '';
+      return;
+    }
+    img.onload = () => {
+      img.style.display = 'block';
+      const displayW = img.clientWidth || img.naturalWidth;
+      const displayH = img.clientHeight || img.naturalHeight;
+      drawPaddleOverlay(blocks, imageSize.length ? imageSize : [img.naturalWidth, img.naturalHeight], displayW, displayH);
+    };
+    img.onerror = () => {
+      if (svg) svg.innerHTML = '';
+    };
+    const keyQ = getApiKey() ? `?key=${encodeURIComponent(getApiKey())}&` : '?';
+    img.src = `${API_BASE}/ocr/source/${pdfSourceId}/preview${keyQ}page=${pdfPage}&scale=2&t=${Date.now()}`;
+  }
+
   function setResultView(view, pageIndex = 0) {
     currentView = view;
     currentPageIndex = pageIndex;
+    const paddlePages = hasPaddleLayout(currentPages);
     renderResultControls();
-    renderResultContent();
+    if (paddlePages && view === 'pages') {
+      togglePaddleLayout(true);
+      renderPaddlePage(pageIndex);
+    } else if (paddlePages) {
+      togglePaddleLayout(false);
+      renderResultContent();
+      if (view === 'pages') syncSourcePdfWithResultPage(pageIndex);
+    } else {
+      renderResultContent();
+      if (view === 'pages') syncSourcePdfWithResultPage(pageIndex);
+    }
   }
 
   function renderResultControls() {
@@ -987,7 +3740,8 @@
     currentPages.forEach((page, index) => {
       const btn = document.createElement('button');
       btn.className = 'page-tab' + (currentView === 'pages' && currentPageIndex === index ? ' active' : '');
-      btn.textContent = 'Página ' + (index + 1);
+      const pdfPageLabel = (page.index != null ? page.index : index) + 1;
+      btn.textContent = 'Página ' + pdfPageLabel;
       btn.onclick = () => setResultView('pages', index);
       tabs.appendChild(btn);
     });
@@ -995,9 +3749,12 @@
 
   async function processFile() {
     if (!selectedFile) return;
-    const apiKey = document.getElementById('api-key').value.trim();
-    const lang = document.getElementById('lang').value;
-    const ocrMode = document.getElementById('ocr-mode').value;
+    const apiKey = getApiKey();
+    if (apiKeyRequired && !(await verifyApiKey())) {
+      showError('API Key incorrecta o vacía. Debe coincidir con OCR_API_KEY en backend\\.env. Pulsa "Limpiar" si guardaste una clave antigua.');
+      return;
+    }
+    const { lang, mode: ocrMode, vision_provider: visionProvider } = getOcrOptions();
 
     currentDownloads = {};
     currentDownloadNames = {};
@@ -1024,24 +3781,93 @@
     document.getElementById('toolbar-chips').innerHTML = '';
     document.getElementById('btn-copy').style.display = 'none';
     document.getElementById('btn-new').style.display = 'none';
+    togglePaddleLayout(false);
 
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
-      const responseData = await uploadWithProgress(formData, apiKey, lang, ocrMode);
+      const responseData = await uploadWithProgress(formData, apiKey, lang, ocrMode, visionProvider);
       showResult(responseData, apiKey);
     } catch (err) {
       showError(err.message);
       hideProgress();
     } finally {
+      activeJobId = null;
+      refreshQueueAndHistory();
       document.getElementById('btn-process').disabled = !selectedFile;
     }
   }
 
-  function uploadWithProgress(formData, apiKey, lang, ocrMode) {
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function pollOcrJob(jobId, apiKey) {
+    const headers = apiKey ? { 'X-API-Key': apiKey } : {};
+    for (let attempt = 0; attempt < 7200; attempt++) {
+      await sleep(attempt < 3 ? 1500 : 2000);
+      let res;
+      try {
+        res = await fetch(`${API_BASE}/ocr/status/${jobId}`, { headers });
+      } catch {
+        throw new Error('Error de red al consultar el progreso. ¿Sigue activo el servidor?');
+      }
+      if (res.status === 500) {
+        let msg = 'Error al procesar el documento';
+        try {
+          const err = await res.json();
+          msg = err.detail || msg;
+        } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      if (res.status === 404) {
+        activeJobId = null;
+        refreshQueueAndHistory();
+        throw new Error('Trabajo no encontrado o huérfano. Pulsa «Limpiar» en la cola y vuelve a subir el PDF.');
+      }
+      const data = await res.json();
+      if (data.status === 'cancelled') {
+        refreshQueueAndHistory();
+        throw new Error(data.detail || 'Trabajo cancelado. Pulsa «Limpiar» en la cola y vuelve a subir el PDF.');
+      }
+      if (data.status === 'queued' || data.status === 'processing' || data.status === 'paused') {
+        let pct;
+        if (data.status === 'queued') {
+          pct = Math.min(12, Math.max(5, data.progress || 5));
+        } else if (data.status === 'paused') {
+          pct = Math.max(8, Math.min(95, data.progress || 8));
+        } else {
+          pct = Math.max(10, Math.min(99, data.progress || 10));
+        }
+        const done = data.pages_done || 0;
+        const total = data.pages_total || 0;
+        let detail = data.detail || 'Aplicando OCR…';
+        if (total > 0 && data.status === 'processing') {
+          detail = `Parsing (${done} / ${total} pages)`;
+        }
+        const pos = data.queue_position > 0 ? ` · Cola #${data.queue_position}` : '';
+        const label = data.status === 'queued' ? 'En cola…'
+          : data.status === 'paused' ? 'En pausa…' : 'Procesando…';
+        document.getElementById('progress-section').classList.add('show');
+        showProgress(pct, label, detail + pos);
+        refreshQueueAndHistory();
+        continue;
+      }
+      if (data.job_id && data.text !== undefined) {
+        showProgress(100, '¡Listo!', 'Extracción completada');
+        setTimeout(() => hideProgress(), 1000);
+        refreshQueueAndHistory();
+        return data;
+      }
+    }
+    throw new Error('Tiempo de espera agotado. El documento sigue siendo muy pesado; prueba dividirlo en partes.');
+  }
+
+  function uploadWithProgress(formData, apiKey, lang, ocrMode, visionProvider) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+      xhr.timeout = 0;
 
       xhr.upload.addEventListener('progress', e => {
         if (e.lengthComputable) {
@@ -1051,35 +3877,56 @@
       });
 
       xhr.upload.addEventListener('load', () => {
-        showProgress(65, 'Procesando documento…', 'Aplicando OCR…');
+        showProgress(62, 'Procesando documento…', 'Aplicando OCR…');
       });
 
       xhr.addEventListener('load', () => {
-        if (xhr.status === 403) { reject(new Error('API Key incorrecta.')); return; }
+        if (xhr.status === 403) {
+          reject(new Error('API Key incorrecta. Usa la misma clave que OCR_API_KEY en backend/.env o pulsa Limpiar y deja OCR_API_KEY vacío en .env para uso local.'));
+          return;
+        }
         if (xhr.status === 413) {
           reject(new Error(`Archivo demasiado grande. Límite: ${MAX_MB} MB. Comprime el PDF en ilovepdf.com primero.`));
           return;
         }
-        if (xhr.status !== 200) {
-          try { reject(new Error(JSON.parse(xhr.responseText).detail || 'Error ' + xhr.status)); }
-          catch { reject(new Error('Error ' + xhr.status)); }
+        if (xhr.status === 202) {
+          let payload;
+          try { payload = JSON.parse(xhr.responseText); }
+          catch { reject(new Error('Respuesta inválida del servidor')); return; }
+          activeJobId = payload.job_id;
+          startQueuePolling();
+          refreshQueueAndHistory();
+          pollOcrJob(payload.job_id, apiKey).then(resolve).catch(reject);
           return;
         }
-        showProgress(95, 'Generando archivos…', 'Preparando descargas…');
-        setTimeout(() => {
-          showProgress(100, '¡Listo!', 'Extracción completada');
-          setTimeout(() => hideProgress(), 1000);
-          try { resolve(JSON.parse(xhr.responseText)); }
-          catch { reject(new Error('Respuesta inválida del servidor')); }
-        }, 400);
+        if (xhr.status !== 200) {
+          let msg = 'Error ' + xhr.status;
+          try {
+            const err = JSON.parse(xhr.responseText);
+            msg = err.detail || msg;
+            if (msg === 'Not Found') msg = 'Servidor desactualizado o ruta incorrecta. Reinicia arrancar.bat.';
+          } catch { /* ignore */ }
+          reject(new Error(msg));
+          return;
+        }
+        showProgress(100, '¡Listo!', 'Extracción completada');
+        setTimeout(() => hideProgress(), 1000);
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { reject(new Error('Respuesta inválida del servidor')); }
       });
 
       xhr.addEventListener('error', () => reject(new Error('Error de red. ¿Está corriendo el servidor?')));
       const modeParam = encodeURIComponent(ocrMode || 'balanced');
-      xhr.open('POST', `${API_BASE}/ocr?lang=${encodeURIComponent(lang)}&mode=${modeParam}`);
+      const visionParam = encodeURIComponent(visionProvider || 'auto');
+      xhr.open('POST', `${API_BASE}/ocr?lang=${encodeURIComponent(lang)}&mode=${modeParam}&vision_provider=${visionParam}`);
       if (apiKey) xhr.setRequestHeader('X-API-Key', apiKey);
       xhr.send(formData);
     });
+  }
+
+  function normalizeMdDownloadName(name) {
+    if (!name) return name;
+    return String(name).replace(/_COMPLETO(?=\.md$)/i, '');
   }
 
   function showResult(data, apiKey) {
@@ -1091,11 +3938,20 @@
       : [];
     currentText = data.text || stripMarkdown(currentMarkdown);
     currentTotalPages = Number(data.total_pages || currentPages.length || (currentMarkdown ? 1 : 0));
-    currentView = 'full';
-    currentPageIndex = 0;
-
-    renderResultControls();
-    renderResultContent();
+    const usePaddle = hasPaddleLayout(currentPages);
+    togglePaddleLayout(usePaddle);
+    if (usePaddle) {
+      currentView = 'pages';
+      currentPageIndex = 0;
+      setPaddleTab('analysis');
+      renderResultControls();
+      renderPaddlePage(0);
+    } else {
+      currentView = 'full';
+      currentPageIndex = 0;
+      renderResultControls();
+      renderResultContent();
+    }
     updateWarnings(data.warnings);
 
     const chips = document.getElementById('toolbar-chips');
@@ -1123,18 +3979,21 @@
     document.getElementById('btn-copy').style.display = '';
     document.getElementById('btn-new').style.display = '';
 
-    const method = data.method || 'tesseract';
+    const method = data.method || 'structured';
     const badge = document.getElementById('method-badge');
-    const methodClass = (method === 'markitdown' || method === 'digital_pdf')
-      ? 'markitdown'
-      : (method === 'gemini' ? 'gemini' : 'tesseract');
-    const methodLabel = method === 'digital_pdf'
-      ? '📑 PDF + tablas'
-      : method === 'markitdown'
-      ? '⚡ PDF digital'
-      : method === 'gemini'
-        ? '✨ OCR estructurado'
-        : '🔍 OCR local';
+    const prettyMethods = ['digital_pdf', 'markitdown', 'gemini', 'vision', 'parallel', 'openai', 'anthropic', 'structured'];
+    const methodClass = prettyMethods.includes(method) ? 'markitdown' : 'tesseract';
+    const methodLabels = {
+      digital_pdf: '📑 PDF + tablas',
+      markitdown: '⚡ PDF digital',
+      gemini: '🧠 Gemini',
+      openai: '🧠 GPT-4o',
+      anthropic: '🧠 Claude',
+      vision: '🧠 IA (visión)',
+      parallel: '🧠 IA paralela (Gemini+GPT+Claude)',
+      structured: '📑 OCR reforzado local',
+    };
+    const methodLabel = methodLabels[method] || '📑 Documento estructurado';
     badge.className = 'method-badge show ' + methodClass;
     badge.textContent = methodLabel;
     document.getElementById('method-section').style.display = '';
@@ -1144,24 +4003,48 @@
     document.getElementById('stat-words').textContent = words.toLocaleString();
     document.getElementById('stats-section').style.display = '';
 
-    ['txt', 'md', 'pdf', 'docx'].forEach(fmt => {
+    ['md', 'txt', 'docx', 'pdf'].forEach(fmt => {
       const btn = document.getElementById('dl-' + fmt);
-      btn.disabled = !currentDownloads[fmt];
-      if (currentDownloads[fmt]) {
+      btn.textContent = DL_LABELS[fmt];
+      const available = !!currentDownloads[fmt];
+      btn.disabled = !available;
+      btn.style.display = available ? '' : 'none';
+      if (available) {
         const url = `${API_BASE}${currentDownloads[fmt]}${apiKey ? '?key=' + encodeURIComponent(apiKey) : ''}`;
-        btn.onclick = () => {
-          const a = document.createElement('a');
-          a.href = url;
-          if (fmt === 'md') {
-            const mdName = currentDownloadNames.md
-              || (selectedFile ? selectedFile.name.replace(/\.[^.]+$/, '') + '.md' : 'documento.md');
-            a.download = mdName;
+        btn.onclick = async () => {
+          try {
+            const res = await fetch(url, { headers: apiHeaders() });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.detail || 'No se pudo descargar el archivo');
+            }
+            const blob = await res.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            if (fmt === 'md') {
+              a.download = normalizeMdDownloadName(currentDownloadNames.md)
+                || (selectedFile ? selectedFile.name.replace(/\.[^.]+$/, '') + '.md' : 'documento.md');
+            } else if (fmt === 'txt') {
+              a.download = (selectedFile ? selectedFile.name.replace(/\.[^.]+$/, '') + '.txt' : 'documento.txt');
+            } else if (fmt === 'docx') {
+              a.download = (selectedFile ? selectedFile.name.replace(/\.[^.]+$/, '') + '.docx' : 'documento.docx');
+            } else if (fmt === 'pdf') {
+              a.download = (selectedFile ? selectedFile.name.replace(/\.[^.]+$/, '') + '.pdf' : 'documento.pdf');
+            }
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(objectUrl);
+          } catch (e) {
+            showError(e.message);
           }
-          a.click();
         };
       }
     });
-    document.getElementById('dl-section').style.display = '';
+    const hasDownloads = ['md', 'txt', 'docx', 'pdf'].some(fmt => currentDownloads[fmt]);
+    document.getElementById('dl-section').style.display = hasDownloads ? '' : 'none';
+    wireResultBatchDownloads(data, apiKey);
   }
 
   async function copyText() {
@@ -1172,22 +4055,49 @@
   }
 
   function showError(msg) {
-    const el = document.getElementById('error-msg');
-    el.textContent = '⚠ ' + msg;
-    el.classList.add('show');
+    const text = String(msg || '');
+    const friendly = /failed to fetch|networkerror|load failed/i.test(text)
+      ? 'El servidor no responde. Ejecuta arrancar.bat y recarga la página (F5).'
+      : text;
+    ['error-msg', 'error-msg-ws', 'error-msg-merge', 'error-msg-edit'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = '⚠ ' + friendly; el.classList.add('show'); }
+    });
   }
-  function hideError() { document.getElementById('error-msg').classList.remove('show'); }
+  function hideError() {
+    ['error-msg', 'error-msg-ws', 'error-msg-merge', 'error-msg-edit'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('show');
+    });
+  }
   function showWarn(msg) {
     const el = document.getElementById('warn-msg');
-    el.textContent = msg;
-    el.classList.add('show');
+    if (el) { el.textContent = msg; el.classList.add('show'); }
   }
-  function hideWarn() { document.getElementById('warn-msg').classList.remove('show'); }
+  function showWarnWs(msg) {
+    const el = document.getElementById('warn-msg-ws');
+    if (el) { el.textContent = msg; el.classList.add('show'); }
+  }
+  function showWarnEdit(msg) {
+    const el = document.getElementById('warn-msg-edit');
+    if (el) { el.textContent = msg; el.classList.add('show'); }
+  }
+  function hideWarn() {
+    ['warn-msg', 'warn-msg-ws', 'warn-msg-edit'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('show');
+    });
+  }
 
   const saved = localStorage.getItem('sci_ocr_key');
-  if (saved) document.getElementById('api-key').value = saved;
-  document.getElementById('api-key').addEventListener('change', e => {
-    localStorage.setItem('sci_ocr_key', e.target.value);
+  if (saved) apiKeyInput.value = saved;
+  apiKeyInput.addEventListener('change', e => {
+    localStorage.setItem('sci_ocr_key', e.target.value.trim());
+    verifyApiKey();
+  });
+  apiKeyInput.addEventListener('input', () => {
+    if (!apiKeyRequired) return;
+    if (getApiKey()) setKeyStatus('', '');
   });
 </script>
 </body>

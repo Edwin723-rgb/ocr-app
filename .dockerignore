@@ -1,0 +1,17 @@
+backend/.venv
+backend/.env
+backend/__pycache__
+backend/uploads/*
+backend/outputs/*
+!backend/uploads/.gitkeep
+!backend/outputs/.gitkeep
+logs
+outputs
+uploads
+.git
+*.bat
+scripts
+terminals
+**/*.pyc
+**/.DS_Store
+Thumbs.db

@@ -1,0 +1,44 @@
+# SCI OCR — despliegue por URL (navegador en cualquier dispositivo)
+#
+# Uso rápido:
+#   cp deploy/env.example .env
+#   # Edita .env (OCR_API_KEY, GEMINI_API_KEY, etc.)
+#   docker compose up -d --build
+#   Abre http://localhost:8080  (o el puerto OCR_HTTP_PORT)
+
+services:
+  ocr:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OCR_HOST: 0.0.0.0
+      OCR_PORT: "8000"
+      OCR_RELOAD: "0"
+      TESSERACT_CMD: /usr/bin/tesseract
+    volumes:
+      - ocr-uploads:/app/backend/uploads
+      - ocr-outputs:/app/backend/outputs
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/config', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      ocr:
+        condition: service_healthy
+    ports:
+      - "${OCR_HTTP_PORT:-8080}:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  ocr-uploads:
+  ocr-outputs:
